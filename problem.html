@@ -16,18 +16,21 @@
         body { font-family: 'Vazirmatn', sans-serif; background: #f0f4f8; }
         .topic-btn { 
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            background-size: cover;
+            background-size: cover; 
+            background-repeat: no-repeat;
             background-position: center;
+            background-color: #ffffff;
             position: relative;
-            overflow: hidden;
+            border-radius: 1rem; 
         }
         .topic-btn::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 100%);
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%);
             z-index: 1;
             transition: opacity 0.3s;
+            border-radius: inherit; 
         }
         .topic-btn.active { 
             transform: translateY(-5px) scale(1.03); 
@@ -37,7 +40,7 @@
         .topic-btn.active::before {
             background: linear-gradient(to top, rgba(37, 99, 235, 0.9) 0%, rgba(0,0,0,0.4) 100%);
         }
-        .topic-btn span {
+        .topic-btn span.topic-title {
             position: relative;
             z-index: 2;
             color: #ffffff;
@@ -61,7 +64,7 @@
         <!-- Top Section -->
         <div class="flex flex-col lg:flex-row gap-6 h-[50vh]">
             
-            <!-- Circle-bar chart (Polar Area with Centered Province Label) -->
+            <!-- Circle-bar chart -->
             <div class="flex-1 bg-white rounded-3xl shadow-sm border p-6 relative flex flex-col">
                 <h3 class="text-lg font-bold text-gray-700 mb-4 border-r-4 border-blue-500 pr-3" id="polar-title">امتیازات زیرحوزه‌ها</h3>
                 <div class="flex-1 relative w-full h-full flex justify-center items-center">
@@ -72,32 +75,25 @@
             <!-- Intuition Boxes -->
             <div class="w-full lg:w-1/3 flex flex-col gap-6">
                 <!-- Rank & Doughnut Box -->
-                <div class="bg-white rounded-3xl shadow-sm border p-6 flex flex-col justify-center items-center flex-1 mt-4">
-                    <div class="flex w-full justify-between items-center mb-6">
-                        <div class="text-center w-1/2">
+                <div class="bg-white rounded-3xl shadow-sm border p-6 flex flex-col justify-center items-center h-full">
+                    <div class="flex w-full justify-between items-center h-full">
+                        <div class="text-center w-1/2 flex flex-col items-center justify-center">
                             <span class="block text-gray-500 font-semibold mb-2">رتبه استان</span>
-                            <div class="text-4xl font-black text-blue-600" id="box-rank" dir="ltr">- / 31</div>
+                            <div id="box-rank" dir="ltr" class="w-full flex justify-center"></div>
                         </div>
-                        <div class="w-1/2 relative h-32 flex justify-center items-center flex-col mt-2">
-                            <span class="block text-gray-500 font-semibold absolute -top-10">امتیاز استان</span>
-                            <canvas id="doughnutChart"></canvas>
-                            <div class="absolute top-[60%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-black text-2xl text-gray-800" id="box-score">-</div>
+                        <div class="w-1/2 flex flex-col items-center justify-center">
+                            <span class="block text-gray-500 font-semibold mb-2">امتیاز استان</span>
+                            <div class="relative h-28 w-full flex justify-center items-center">
+                                <canvas id="doughnutChart"></canvas>
+                                <div class="absolute top-[50%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-black text-2xl text-gray-800" id="box-score">-</div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Last Period Change Box -->
-                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl shadow-lg p-6 text-white flex-1 flex flex-col justify-center items-center relative overflow-hidden">
-                    <i class="fa-solid fa-chart-line absolute -left-4 -bottom-4 text-8xl opacity-10"></i>
-                    <span class="text-blue-100 font-semibold text-lg mb-2 z-10">تغییرات نسبت به دوره گذشته</span>
-                    <div class="text-5xl font-black z-10 flex items-center gap-4" id="box-change" dir="ltr">
-                        - %
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Bottom Section: Topic Selector Cards Side-by-Side Filling Full Width -->
+        <!-- Bottom Section: Topic Selector -->
         <div class="bg-white rounded-3xl shadow-sm border p-6">
             <h3 class="text-lg font-bold text-gray-700 mb-6 border-r-4 border-indigo-500 pr-3">حوزه‌های ارزیابی (برای تغییر نمودار کلیک کنید)</h3>
             <div class="flex gap-4 w-full justify-between items-center" id="topics-container">
@@ -109,8 +105,21 @@
     <script>
         Chart.defaults.font.family = "'Vazirmatn', sans-serif";
         const urlParams = new URLSearchParams(window.location.search);
-        const urlProvince = urlParams.get('province') || "تهران";
-        let currentTopic = urlParams.get('topic') || "";
+        
+        // STANDARD NORMALIZATION FUNCTION: Solves Persian typing and invisible character mismatch issues
+        function normalizeText(str) {
+            if (!str) return "";
+            return str.toString()
+                .replace(/ي/g, "ی") // Arabic Yeh to Persian Yeh
+                .replace(/ك/g, "ک") // Arabic Kaf to Persian Kaf
+                .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width spaces and BOMs
+                .replace(/^استان\s+/i, "") // Optionally ignore the word 'استان' if mistakenly added
+                .trim();
+        }
+
+        const urlProvinceRaw = urlParams.get('province') || "تهران";
+        const urlProvince = normalizeText(urlProvinceRaw);
+        let currentTopic = normalizeText(urlParams.get('topic') || "");
 
         let subtopicsData = [];
         let mapScoresData = [];
@@ -119,7 +128,6 @@
         let polarChart = null;
         let doughnutChart = null;
 
-        // Custom plugin to guarantee province text is exactly over the polar axis center
         const polarCenterTextPlugin = {
             id: 'polarCenterText',
             afterDraw: function(chart) {
@@ -128,43 +136,68 @@
                 let x = chart.scales.r.xCenter;
                 let y = chart.scales.r.yCenter;
                 
-                // Get the exact radius where the 0-value starts
                 let innerRadius = chart.scales.r.getDistanceFromCenterForValue(0);
                 
                 ctx.save();
                 
-                // Draw inner circle background filling the hole perfectly
                 ctx.beginPath();
                 ctx.arc(x, y, innerRadius, 0, 2 * Math.PI);
                 ctx.fillStyle = "rgba(255, 255, 255, 1)";
                 ctx.fill();
                 
-                // Border for the circle
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = "#e5e7eb";
                 ctx.stroke();
 
-                // Draw Text centered inside the circle
                 ctx.font = "900 17px Vazirmatn";
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "center";
                 ctx.fillStyle = "#1f2937";
-                ctx.fillText(urlProvince, x, y);
+                ctx.fillText(urlProvinceRaw, x, y); // Draw the display name
                 
                 ctx.restore();
             }
         };
 
+        // NEW ROBUST CSV PARSER: State Machine handles commas inside quotes natively.
         function parseCSV(text) {
-            let lines = text.trim().split(/\r\n|\n/);
-            if(lines.length === 0) return [];
-            let headers = lines[0].split(',').map(e => e.replace(/^"|"$/g, '').trim());
+            let lines = text.split(/\r?\n/);
+            if (lines.length === 0) return [];
+            
+            function parseLine(line) {
+                let result = [];
+                let inQuotes = false;
+                let val = '';
+                for (let i = 0; i < line.length; i++) {
+                    let char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(val);
+                        val = '';
+                    } else {
+                        val += char;
+                    }
+                }
+                result.push(val);
+                return result.map(e => e.replace(/^"|"$/g, '').trim());
+            }
+
+            let headers = parseLine(lines[0]);
+            headers[0] = headers[0].replace(/^\uFEFF/, ''); // Remove BOM strictly from first header
+            
             let result = [];
-            for(let i=1; i<lines.length; i++) {
-                let currentLine = lines[i].split(',').map(e => e.replace(/^"|"$/g, '').trim());
-                if(currentLine.length === headers.length) {
+            for (let i = 1; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+                
+                let currentLine = parseLine(line);
+                
+                if (currentLine.length > 0) {
                     let obj = {};
-                    for(let j=0; j<headers.length; j++) obj[headers[j]] = currentLine[j];
+                    for (let j = 0; j < headers.length; j++) {
+                        obj[headers[j]] = currentLine[j] || "";
+                    }
                     result.push(obj);
                 }
             }
@@ -172,7 +205,7 @@
         }
 
         async function initDashboard() {
-            document.getElementById('header-prov').innerText = `پروفایل استان ${urlProvince}`;
+            document.getElementById('header-prov').innerText = `پروفایل استان ${urlProvinceRaw}`;
             
             try {
                 const [subRes, mapRes, trendRes, topRes] = await Promise.all([
@@ -184,7 +217,7 @@
                 trendScoreData = parseCSV(await trendRes.text());
                 
                 let topicsMeta = parseCSV(await topRes.text());
-                uniqueTopics = topicsMeta.map(t => ({ name: t.topic_name, color: t.upper_color || '#3b82f6' }));
+                uniqueTopics = topicsMeta.map(t => ({ name: normalizeText(t.topic_name), color: t.upper_color || '#3b82f6', originalName: t.topic_name }));
 
                 if(!currentTopic && uniqueTopics.length > 0) {
                     currentTopic = uniqueTopics[0].name;
@@ -205,21 +238,47 @@
             
             uniqueTopics.forEach(t => {
                 const btn = document.createElement('button');
-                btn.className = `topic-btn flex-1 w-full h-48 rounded-2xl border-2 text-center font-bold text-gray-700 ${t.name === currentTopic ? 'active border-blue-500' : 'border-gray-200'}`;
+                btn.className = `topic-btn flex-1 w-full h-48 rounded-2xl border-2 text-center font-bold text-gray-700 hover:z-50 ${t.name === currentTopic ? 'active border-blue-500 z-40' : 'border-gray-200 z-10'}`;
                 
-                let topicImgPath = `assets/images/تاپیک ${t.name}.webp`;
+                // Keep the image path with the original text exactly as it was
+                let topicImgPath = `assets/images/تاپیک ${t.originalName}.webp`;
                 btn.style.backgroundImage = `url('${topicImgPath}')`;
                 
-                btn.innerHTML = `<span>${t.name}</span>`;
+                // Strict match via normalized names
+                let pTrends = trendScoreData.filter(tr => normalizeText(tr.province_name) === urlProvince && normalizeText(tr.topic_name) === t.name);
+                pTrends.sort((a,b) => Number(a.year) - Number(b.year));
+                let changeHtml = "";
+                if(pTrends.length >= 2) {
+                    let current = Number(pTrends[pTrends.length-1].index_score);
+                    let prev = Number(pTrends[pTrends.length-2].index_score);
+                    if(prev !== 0 && !isNaN(current) && !isNaN(prev)) {
+                        let change = ((current - prev) / prev) * 100;
+                        let icon = change > 0 ? '<i class="fa-solid fa-arrow-trend-up"></i>' : '<i class="fa-solid fa-arrow-trend-down"></i>';
+                        let colorClass = change > 0 ? 'text-green-300' : 'text-red-300';
+                        
+                        changeHtml = `
+                        <div class="absolute bottom-3 left-3 z-[100] group transition-all duration-300 hover:scale-125 cursor-default">
+                            <div class="text-sm font-black ${colorClass} bg-black/60 px-2 py-1 rounded backdrop-blur-sm shadow-md" dir="ltr">
+                                ${Math.abs(change).toFixed(1)}% ${icon}
+                            </div>
+                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-normal rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+                                تغییرات نسبت به دوره گذشته
+                                <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                        </div>`;
+                    }
+                }
+
+                btn.innerHTML = `<span class="topic-title text-xl">${t.originalName}</span>${changeHtml}`;
 
                 btn.onclick = () => {
                     currentTopic = t.name;
                     document.querySelectorAll('.topic-btn').forEach(b => {
-                        b.classList.remove('active', 'border-blue-500');
-                        b.classList.add('border-gray-200');
+                        b.classList.remove('active', 'border-blue-500', 'z-40');
+                        b.classList.add('border-gray-200', 'z-10');
                     });
-                    btn.classList.remove('border-gray-200');
-                    btn.classList.add('active', 'border-blue-500');
+                    btn.classList.remove('border-gray-200', 'z-10');
+                    btn.classList.add('active', 'border-blue-500', 'z-40');
                     updateDashboard(t.name);
                 };
                 container.appendChild(btn);
@@ -227,46 +286,49 @@
         }
 
         function updateDashboard(topicName) {
-            document.getElementById('polar-title').innerText = `امتیازات زیرحوزه‌های: ${topicName}`;
-
-            let mapRow = mapScoresData.find(m => m.province_name === urlProvince && m.topic_name === topicName);
-            let score = mapRow ? Number(mapRow.index_score) : 0;
-            let rank = mapRow ? mapRow.province_rank : "-";
+            // Strict text matching
+            let mapRow = mapScoresData.find(m => normalizeText(m.province_name) === urlProvince && normalizeText(m.topic_name) === topicName);
+            let score = mapRow && !isNaN(Number(mapRow.index_score)) ? Number(mapRow.index_score) : 0;
+            let rank = mapRow && mapRow.province_rank ? mapRow.province_rank : "-";
             
-            document.getElementById('box-rank').innerText = `${rank} / 31`;
+            let displayTopicName = uniqueTopics.find(t => t.name === topicName)?.originalName || topicName;
+            document.getElementById('polar-title').innerText = `امتیازات زیرحوزه‌های: ${displayTopicName}`;
+
+            document.getElementById('box-rank').innerHTML = `
+                <div class="flex items-end justify-center w-full mt-2 h-20">
+                    <div class="flex items-end">
+                        <div class="w-10 sm:w-12 bg-gray-200 h-10 border-t-2 border-gray-300 rounded-tl-md"></div>
+                        <div class="w-16 sm:w-20 bg-gradient-to-t from-gray-100 to-white h-16 border-t-4 border-blue-500 rounded-t-lg shadow-md flex justify-center items-center z-10 relative">
+                            <span class="text-3xl font-black text-blue-700 leading-none mb-1">${rank}</span>
+                        </div>
+                        <div class="w-10 sm:w-12 bg-gray-300 h-12 border-t-2 border-gray-400 rounded-tr-md"></div>
+                    </div>
+                    <div class="ml-4 mb-2 flex items-baseline">
+                        <span class="text-2xl font-light text-gray-400 mr-1">/</span>
+                        <span class="text-xl font-bold text-gray-500">31</span>
+                    </div>
+                </div>
+            `;
+            
             document.getElementById('box-score').innerText = score;
-
-            let pTrends = trendScoreData.filter(tr => tr.province_name === urlProvince && tr.topic_name === topicName);
-            pTrends.sort((a,b) => Number(a.year) - Number(b.year));
-            
-            if(pTrends.length >= 2) {
-                let current = Number(pTrends[pTrends.length-1].index_score);
-                let prev = Number(pTrends[pTrends.length-2].index_score);
-                if(prev !== 0) {
-                    let change = ((current - prev) / prev) * 100;
-                    let icon = change > 0 ? '<i class="fa-solid fa-arrow-trend-up text-green-300"></i>' : '<i class="fa-solid fa-arrow-trend-down text-red-300"></i>';
-                    document.getElementById('box-change').innerHTML = `${Math.abs(change).toFixed(1)}% ${icon}`;
-                }
-            } else {
-                document.getElementById('box-change').innerHTML = "- %";
-            }
 
             drawDoughnut(score);
 
-            let subs = subtopicsData.filter(s => s.province_name === urlProvince && s.topic_name === topicName);
+            let subs = subtopicsData.filter(s => normalizeText(s.province_name) === urlProvince && normalizeText(s.topic_name) === topicName);
             let labels = subs.map(s => s.subtopic_name);
             let data = subs.map(s => Number(s.subtopic_score));
             drawPolarChart(labels, data, topicName);
         }
 
         function drawDoughnut(score) {
+            let safeScore = Math.max(0, Math.min(100, score));
             const ctx = document.getElementById('doughnutChart').getContext('2d');
             if(doughnutChart) doughnutChart.destroy();
             doughnutChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     datasets: [{
-                        data: [score, 100 - score],
+                        data: [safeScore, 100 - safeScore],
                         backgroundColor: ['#2563eb', '#e5e7eb'],
                         borderWidth: 0,
                         cutout: '75%'
@@ -283,7 +345,6 @@
             let topicObj = uniqueTopics.find(t => t.name === topicName);
             let baseColor = topicObj && topicObj.color ? topicObj.color : '#3b82f6';
 
-            // Generate scale of topic color variations for bars
             const colors = data.map((_, i) => {
                 let alpha = 0.9 - (i * 0.12);
                 if(alpha < 0.35) alpha = 0.35;
@@ -307,14 +368,24 @@
                     responsive: true, maintainAspectRatio: false,
                     scales: { 
                         r: { 
-                            min: -40, // Setting negative minimum creates a hollow space in the center, pushing the 0-value outward
+                            min: -40, 
                             max: 100, 
                             ticks: { display: false },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            pointLabels: {
+                                display: true,
+                                centerPointLabels: true,
+                                font: {
+                                    family: "'Vazirmatn', sans-serif",
+                                    size: 13,
+                                    weight: 'bold'
+                                },
+                                color: '#4b5563'
+                            }
                         } 
                     },
                     plugins: {
-                        legend: { position: 'right', labels: { font: { family: 'Vazirmatn', size: 14 } } },
+                        legend: { display: false },
                         tooltip: { titleFont: { family: 'Vazirmatn', size: 14 }, bodyFont: { family: 'Vazirmatn', size: 14 } }
                     }
                 },
