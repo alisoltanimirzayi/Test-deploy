@@ -2,17 +2,822 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نمودار تحلیلی داده‌ها</title>
-    <!-- 1. Import Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نقشه تعاملی شاخص‌های ایران - نسخه داده‌های واقعی</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Vazirmatn Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --border-color: #dddddd;
+            --text-color: #333333;
+            --hover-bg: #eef2f5;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        /* Welcome Overlay */
+        #welcome-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.65); z-index: 9999;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(6px); cursor: pointer;
+            transition: opacity 0.4s ease;
+        }
+        .welcome-box {
+            background: #ffffff; padding: 40px; border-radius: 20px;
+            max-width: 550px; text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-30px) scale(0.95); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        #left-panel {
+            width: 340px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.05); 
+            z-index: 1000;
+            overflow-x: hidden;
+        }
+
+        #search-index {
+            padding: 12px; margin-bottom: 15px; background: #ffffff;
+            border: 1px solid var(--border-color); border-radius: 8px;
+            width: 100%; outline: none; text-align: right;
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+        }
+        #search-index:focus { border-color: #0078d7; box-shadow: 0 0 5px rgba(0, 120, 215, 0.2); }
+
+        /* Reorganized Topic List into 2-Column Grid with fixed row heights to strictly prevent overlapping */
+        .index-list { 
+            list-style: none; 
+            padding: 10px; 
+            margin: 0; 
+            overflow-y: auto; 
+            flex-grow: 1; 
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: 190px; /* Explicit height to prevent layout collapse */
+            gap: 16px;
+            align-content: start;
+        }
+        .index-list::-webkit-scrollbar { width: 6px; }
+        .index-list::-webkit-scrollbar-track { background: transparent; }
+        .index-list::-webkit-scrollbar-thumb { background: #bbb; border-radius: 10px; }
+
+        .index-item {
+            height: 100%;
+            width: 100%;
+            border-radius: 14px; 
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            font-weight: 700; 
+            text-align: center; 
+            font-size: 0.8rem;
+            color: #ffffff; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            border: 3px solid transparent; 
+            position: relative; 
+            overflow: hidden; 
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .index-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.1) 100%);
+            z-index: 1;
+            transition: opacity 0.3s;
+        }
+        .index-item span {
+            position: relative;
+            z-index: 2;
+            line-height: 1.3;
+        }
+        .index-item:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 18px rgba(0,0,0,0.2); }
+        .index-item.active { border-color: #0078d7; transform: scale(1.03); box-shadow: 0 0 15px rgba(0,120,215,0.5); }
+
+        #explorer-btn-container { margin: 20px auto 10px; display: flex; justify-content: center; width: 100%; flex-shrink: 0; }
+        .explorer-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+            width: 130px; height: 130px; background: #ffffff;
+            color: #0078d7; border: 3px solid #0078d7; border-radius: 50%;
+            text-decoration: none; font-weight: 800; font-size: 0.85rem;
+            transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(0, 120, 215, 0.15);
+        }
+        .explorer-btn img {
+            width: 48px; height: 48px;
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+        .explorer-btn:hover { background: #0078d7; color: #ffffff; box-shadow: 0 10px 25px rgba(0, 120, 215, 0.4); transform: translateY(-4px); }
+        .explorer-btn:hover img { transform: scale(1.1); filter: brightness(0) invert(1); }
+
+        #center-panel { flex-grow: 1; position: relative; }
+        #map { width: 100%; height: 100%; background: #e8f4fc; }
+        .leaflet-tile-pane { filter: none; }
+
+        #map-legend {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+            padding: 15px 25px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            z-index: 1000; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(0,0,0,0.05);
+        }
+        .legend-title { font-size: 0.9rem; font-weight: 800; margin-bottom: 10px; color: #444; }
+        .legend-scale-bar { display: flex; height: 24px; width: 70vw; max-width: 800px; border-radius: 12px; overflow: hidden; border: 1px solid #bbb; }
+        .legend-segment { flex-grow: 1; height: 100%; cursor: pointer; transition: transform 0.2s, filter 0.2s; }
+        .legend-segment:hover { transform: scaleY(1.3); filter: brightness(1.2); }
+        .legend-labels { display: flex; justify-content: space-between; width: 70vw; max-width: 800px; font-size: 0.8rem; font-weight: 700; color: #555; margin-top: 8px; padding: 0 5px; }
+
+        .glass-popup .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border-radius: 12px; padding: 5px;
+        }
+        .glass-popup .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+
+        #right-panel {
+            width: 500px; background: var(--panel-bg); border-right: 1px solid var(--border-color);
+            padding: 25px; box-shadow: 4px 0 15px rgba(0,0,0,0.05); z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .panel-title { font-size: 1.3rem; margin-top: 0; margin-bottom: 20px; text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; width: 100%; font-weight: 700; color: var(--text-color); }
+        #province-details { text-align: center; width: 100%; }
+        .instruction { font-size: 0.95rem; color: #666; text-align: center; margin-top: 50px; line-height: 1.5; }
+        .index-description-text { font-size: 0.85rem; line-height: 1.8; color: #444; text-align: justify; margin: 10px 0; padding: 12px; background: #f8fbff; border-radius: 10px; border: 1px solid #e0efff; }
+
+        .action-btn {
+            margin-top: 12px; 
+            height: 70px;
+            color: #ffffff; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            font-family: inherit; 
+            font-size: 1.1rem; 
+            font-weight: 800; 
+            width: 100%; 
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            transition: background 0.3s;
+        }
+        .action-btn:hover::before {
+            background: rgba(0, 0, 0, 0.25);
+        }
+        .action-btn span {
+            position: relative;
+            z-index: 10;
+        }
+        #btn-similar { 
+            background-image: url('assets/images/گونه شناسی.webp'); 
+            display: none; 
+        }
+        #btn-problem { 
+            background-image: url('assets/images/پروفایل استان.webp'); 
+            display: none; 
+        }
+        .action-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+
+        #table-container { width: 100%; display: none; flex-direction: column; height: 100%; }
+        #heatmap-wrapper { flex-grow: 1; overflow-y: auto; padding-left: 5px; padding-right: 0; width: 100%; overflow-x: auto; }
+        #heatmap-wrapper::-webkit-scrollbar { width: 6px; height: 6px; }
+        #heatmap-wrapper::-webkit-scrollbar-track { background: transparent; }
+        #heatmap-wrapper::-webkit-scrollbar-thumb { background: #bbb; border-radius: 10px; }
+
+        .heat-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.75rem; text-align: center; }
+        .heat-table th { background: #f0f0f0; padding: 10px 4px; color: #333; border: 1px solid #ddd; font-weight: bold; }
+        .heat-table td { padding: 10px 4px; border: 1px solid #eee; font-weight: bold; }
+
+        .prov-row { display: flex; align-items: center; justify-content: space-between; background: #ffffff; border-radius: 8px; padding: 10px; margin-bottom: 10px; border: 1px solid #eee; transition: box-shadow 0.2s; }
+        .prov-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .prov-row .p-info { width: 45%; display: flex; flex-direction: column; gap: 4px; }
+        .prov-row .p-name { font-weight: bold; font-size: 0.95rem; color: #333; }
+        .prov-row .p-meta { font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px; }
+        .sparkline-container { width: 50%; height: 40px; }
+
+        .leaflet-tooltip.custom-tooltip { background-color: rgba(255, 255, 255, 0.95); border: 1px solid #ccc; color: #333; border-radius: 6px; font-family: 'Vazirmatn', sans-serif; font-size: 14px; font-weight: 600;}
+    </style>
 </head>
 <body>
 
-    <div style="width: 700px; margin: auto;">
-        <h2>روند تغییرات امتیاز در سال‌ها</h2>
-        <canvas id="mainChart"></canvas>
+    <div id="welcome-overlay" onclick="this.style.opacity='0'; setTimeout(()=>this.style.display='none', 400);">
+        <div class="welcome-box" onclick="event.stopPropagation();">
+            <h2 style="font-size: 1.6rem; color: #0078d7; margin-bottom: 15px; font-weight: 800;">سامانه تصمیم‌یار فرهنگی و اجتماعی</h2>
+            <p style="font-size: 1rem; color: #555; line-height: 1.8; text-align: justify; margin-bottom: 25px;">
+                به اطلس یکپارچه وضعیت استان‌های کشور خوش آمدید. این سامانه به شما اجازه می‌دهد تا شاخص‌های کلان را به تفکیک جغرافیایی بررسی کرده، استان‌های هم‌تراز را شناسایی و وضعیت روند رشد آن‌ها را ارزیابی نمایید.
+            </p>
+            <button onclick="document.getElementById('welcome-overlay').click()" style="background: #0078d7; color: white; border: none; padding: 10px 30px; border-radius: 8px; font-family: 'Vazirmatn'; font-size: 1rem; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,120,215,0.3);">ورود به سامانه</button>
+        </div>
     </div>
 
-    <script src="test.js"> </script>
+    <div id="left-panel">
+        <h2 class="panel-title">شاخص‌ها</h2>
+        <input type="text" id="search-index" placeholder="جستجوی شاخص...">
+        <ul class="index-list" id="index-list"></ul>
+        
+        <div id="explorer-btn-container">
+            <a href="explorer.html" id="explorer-link" class="explorer-btn">
+                <img src="assets/images/magnifier.webp" alt="کاوشگر">
+                <span>کاوشگر داده</span>
+            </a>
+        </div>
+    </div>
+
+    <div id="center-panel">
+        <div id="map"></div>
+        <div id="map-legend">
+            <span class="legend-title" id="legend-title-text">طیف امتیاز شاخص</span>
+            <div class="legend-scale-bar" id="legend-bar"></div>
+            <div class="legend-labels">
+                <span>کمترین (۰)</span>
+                <span>متوسط</span>
+                <span>بیشترین (۱۰۰)</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="right-panel">
+        <h2 class="panel-title">تحلیل منطقه‌ای</h2>
+        
+        <div id="province-details">
+            <p class="instruction">در حال بارگذاری اطلاعات...</p>
+        </div>
+        
+        <div id="chart-wrapper" style="width: 100%; height: 260px; margin: 15px 0; display: none;">
+            <canvas id="rankingBarChart"></canvas>
+        </div>
+        
+        <button id="btn-similar" class="action-btn"><span>گونه‌شناسی استان‌های مشابه</span></button>
+        <button id="btn-problem" class="action-btn"><span>پروفایل استان</span></button>
+
+        <div id="table-container">
+            <button id="btn-back" style="margin-bottom: 15px; background: transparent; color: #666; border: 1px solid #ccc; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; width: 100%; transition: 0.2s; font-family: 'Vazirmatn';">← بازگشت به نمای اصلی</button>
+            <div id="heatmap-wrapper"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!sessionStorage.getItem('welcomeShown')) {
+                const overlay = document.getElementById('welcome-overlay');
+                overlay.style.display = 'flex';
+                overlay.style.opacity = '1';
+                sessionStorage.setItem('welcomeShown', 'true');
+            }
+        });
+
+        Chart.defaults.color = '#333333'; 
+        Chart.defaults.font.family = "'Vazirmatn', Tahoma, sans-serif";
+
+        function hexToRgb(hex) {
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : {r:0, g:120, b:215};
+        }
+
+        function interpolateColor(c1, c2, factor) {
+            let r = Math.round(c1.r + factor * (c2.r - c1.r));
+            let g = Math.round(c1.g + factor * (c2.g - c1.g));
+            let b = Math.round(c1.b + factor * (c2.b - c1.b));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        const heatStages = 7;
+        let currentLowerRgb = {r:230, g:240, b:255}; 
+        let currentUpperRgb = {r:0, g:120, b:215};
+
+        function getHeatmapColor(score) {
+            let factor = Number(score) / 100;
+            if (factor > 1) factor = 1;
+            if (factor < 0) factor = 0;
+            return interpolateColor(currentLowerRgb, currentUpperRgb, factor);
+        }
+
+        let hoveredStageIndex = null;
+
+        function initLegend() {
+            const bar = document.getElementById('legend-bar');
+            bar.innerHTML = '';
+            for(let i=0; i<heatStages; i++) {
+                let scoreVal = (i / (heatStages - 1)) * 100;
+                let seg = document.createElement('div');
+                seg.className = 'legend-segment';
+                seg.style.backgroundColor = getHeatmapColor(scoreVal);
+                
+                seg.addEventListener('mouseenter', () => { hoveredStageIndex = i; updateMapStyles(); });
+                seg.addEventListener('mouseleave', () => { hoveredStageIndex = null; updateMapStyles(); });
+                bar.appendChild(seg);
+            }
+            document.getElementById('legend-title-text').innerText = `طیف امتیاز (${currentIndex})`;
+        }
+
+        let topicsData = []; 
+        let mapScoresData = []; 
+        let trendScoreData = []; 
+        let clustersData = []; 
+
+        let currentIndex = "";
+        let map, geojsonLayer;
+        let rankingBarChart = null;
+        let mapPopupChart = null;
+        let sparklineCharts = [];
+        let loadedGeoJSON = null;
+        let selectedProvince = null;
+        let similarProvinces = []; 
+
+        function parseCSV(text) {
+            let lines = text.trim().split(/\r\n|\n/);
+            if(lines.length === 0) return [];
+            let headers = parseCSVLine(lines[0]);
+            let result = [];
+            for(let i=1; i<lines.length; i++) {
+                let currentLine = parseCSVLine(lines[i]);
+                if(currentLine.length === headers.length) {
+                    let obj = {};
+                    for(let j=0; j<headers.length; j++) obj[headers[j].trim()] = currentLine[j].trim();
+                    result.push(obj);
+                }
+            }
+            return result;
+        }
+
+        function parseCSVLine(line) {
+            let result = [];
+            let insideQuote = false;
+            let entry = "";
+            for(let i=0; i<line.length; i++) {
+                let char = line[i];
+                if(char === '"') insideQuote = !insideQuote;
+                else if(char === ',' && !insideQuote) { result.push(entry); entry = ""; }
+                else entry += char;
+            }
+            result.push(entry);
+            return result.map(e => e.replace(/^"|"$/g, ''));
+        }
+
+        async function loadAllData() {
+            try {
+                const [tRes, mRes, trRes, cRes] = await Promise.all([
+                    fetch('data/topics.csv'), fetch('data/map_scores.csv'), fetch('data/trend_score.csv'), fetch('data/clusters.csv')
+                ]);
+                topicsData = parseCSV(await tRes.text());
+                mapScoresData = parseCSV(await mRes.text());
+                trendScoreData = parseCSV(await trRes.text());
+                clustersData = parseCSV(await cRes.text());
+
+                if(topicsData.length > 0) {
+                    currentIndex = topicsData[0].topic_name;
+                    updateTopicColors(topicsData[0]);
+                }
+                initUI();
+                initLegend();
+                initMap();
+
+                const geoRes = await fetch('data/iran.geojson');
+                if(!geoRes.ok) throw new Error("GeoJSON not found");
+                renderMapData(await geoRes.json());
+            } catch(err) {
+                console.error("Error loading CSV files:", err);
+                alert("مشکل در خواندن فایل‌های CSV.");
+            }
+        }
+
+        function updateTopicColors(tObj) {
+            if(tObj && tObj.lower_color && tObj.upper_color) {
+                currentLowerRgb = hexToRgb(tObj.lower_color);
+                currentUpperRgb = hexToRgb(tObj.upper_color);
+            } else {
+                currentLowerRgb = {r:230, g:240, b:255}; 
+                currentUpperRgb = {r:0, g:120, b:215};
+            }
+        }
+
+        function initUI() {
+            const list = document.getElementById('index-list');
+            list.innerHTML = '';
+            
+            topicsData.forEach(t => {
+                const li = document.createElement('li');
+                li.className = 'index-item' + (t.topic_name === currentIndex ? ' active' : '');
+                
+                let topicImgPath = `assets/images/تاپیک ${t.topic_name}.webp`;
+                li.style.backgroundImage = `url('${topicImgPath}')`;
+
+                li.innerHTML = `<span>${t.topic_name}</span>`;
+
+                li.onclick = () => {
+                    if (selectedProvince) {
+                        selectedProvince = null;
+                        map.closePopup();
+                        map.flyTo([32.4279, 53.6880], 5.5, { duration: 1.5 });
+                    }
+
+                    document.querySelectorAll('.index-item').forEach(el => el.classList.remove('active'));
+                    li.classList.add('active');
+                    currentIndex = t.topic_name;
+                    updateTopicColors(t);
+                    
+                    similarProvinces = [];
+                    updateMapStyles();
+                    initLegend();
+                    updateDefaultPanel();
+                    document.getElementById('table-container').style.display = 'none';
+                };
+                list.appendChild(li);
+            });
+
+            document.getElementById('search-index').addEventListener('input', function(e) {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.index-item').forEach(li => {
+                    li.style.display = li.innerText.toLowerCase().includes(term) ? 'flex' : 'none';
+                });
+            });
+
+            document.getElementById('btn-back').addEventListener('click', resetToChartPanel);
+
+            document.getElementById('btn-problem').addEventListener('click', function() {
+                if(selectedProvince && currentIndex) {
+                    window.location.href = `problem.html?province=${encodeURIComponent(selectedProvince)}&topic=${encodeURIComponent(currentIndex)}`;
+                }
+            });
+
+            document.getElementById('btn-similar').addEventListener('click', function() {
+                if (!selectedProvince || !loadedGeoJSON) return;
+                map.flyTo([32.4279, 53.6880], 5.5, { duration: 1.5 });
+                map.closePopup();
+
+                document.getElementById('province-details').style.display = 'none';
+                document.getElementById('chart-wrapper').style.display = 'none';
+                this.style.display = 'none';
+                document.getElementById('btn-problem').style.display = 'none';
+                
+                let topicClusters = clustersData.filter(c => c.topic_name === currentIndex);
+                let provMap = {};
+                topicClusters.forEach(row => {
+                    if(!provMap[row.province_name]) provMap[row.province_name] = { cluster_group: row.cluster_group, subtopics: {} };
+                    provMap[row.province_name].subtopics[row.subtopic_name] = Number(row.subtopic_score);
+                });
+
+                let allProvs = [];
+                Object.keys(provMap).forEach(pName => {
+                    let scores = Object.values(provMap[pName].subtopics);
+                    let avgScore = scores.length > 0 ? scores.reduce((a,b)=>a+b, 0) / scores.length : 0;
+                    allProvs.push({ name: pName, cluster: provMap[pName].cluster_group, subtopics: provMap[pName].subtopics, score: avgScore });
+                });
+
+                const selProvData = allProvs.find(p => p.name === selectedProvince);
+                const selectedClusterGroup = selProvData ? selProvData.cluster : null;
+                const targetProvinces = allProvs.filter(p => p.cluster === selectedClusterGroup);
+                similarProvinces = targetProvinces.map(p => p.name);
+                
+                updateMapStyles();
+                sparklineCharts.forEach(c => c.destroy());
+                sparklineCharts = [];
+
+                let subtopicKeys = [];
+                targetProvinces.forEach(p => { Object.keys(p.subtopics).forEach(sk => { if(!subtopicKeys.includes(sk)) subtopicKeys.push(sk); }); });
+
+                let htmlContent = `
+                    <div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; overflow-x: auto;">
+                        <h4 style="margin: 0 0 10px 0; color: #333; text-align:center; font-size: 0.95rem; font-weight:bold;">گروه هم‌تراز: ${currentIndex}</h4>
+                        <table class="heat-table">
+                            <thead><tr><th style="width: 25%;">استان</th>
+                `;
+                subtopicKeys.forEach(sk => htmlContent += `<th>${sk}</th>`);
+                htmlContent += `</tr></thead><tbody>`;
+                
+                targetProvinces.forEach(p => {
+                    htmlContent += `<tr><td>${p.name} ${p.name === selectedProvince ? '★' : ''}</td>`;
+                    subtopicKeys.forEach(sk => {
+                        let val = p.subtopics[sk] !== undefined ? p.subtopics[sk] : 0;
+                        let cellColor = getHeatmapColor(val);
+                        let factor = val/100;
+                        let textColor = factor > 0.55 ? '#ffffff' : '#222222';
+                        htmlContent += `<td style="background: ${cellColor}; color: ${textColor};">${val}</td>`;
+                    });
+                    htmlContent += `</tr>`;
+                });
+                htmlContent += `</tbody></table></div>`;
+                htmlContent += `<div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; color:#555;">روند زمانی شاخص در استان‌های گروه:</div>`;
+                
+                targetProvinces.forEach(p => {
+                    let mapDataRow = mapScoresData.find(m => m.province_name === p.name && m.topic_name === currentIndex);
+                    let rank = mapDataRow ? mapDataRow.province_rank : "-";
+                    
+                    let pTrends = trendScoreData.filter(tr => tr.province_name === p.name && tr.topic_name === currentIndex);
+                    pTrends.sort((a, b) => Number(a.year) - Number(b.year));
+                    
+                    let changeHtml = '';
+                    if(pTrends.length >= 2) {
+                        let currentScore = Number(pTrends[pTrends.length-1].index_score);
+                        let prevScore = Number(pTrends[pTrends.length-2].index_score);
+                        if(prevScore !== 0) {
+                            let pct = ((currentScore - prevScore) / prevScore) * 100;
+                            let color = pct > 0 ? '#10b981' : (pct < 0 ? '#ef4444' : '#6b7280');
+                            let icon = pct > 0 ? '▲' : (pct < 0 ? '▼' : '−');
+                            changeHtml = `<span style="color:${color}; font-weight:bold;" dir="ltr">${Math.abs(pct).toFixed(1)}% ${icon}</span>`;
+                        }
+                    }
+                    
+                    htmlContent += `
+                    <div class="prov-row">
+                        <div class="p-info">
+                            <span class="p-name">${p.name}</span>
+                            <div class="p-meta">رتبه: ${rank} <span style="color:#ccc;">|</span> ${changeHtml}</div>
+                        </div>
+                        <div class="sparkline-container"><canvas id="sparkline-${p.name}"></canvas></div>
+                    </div>`;
+                });
+                
+                document.getElementById('heatmap-wrapper').innerHTML = htmlContent;
+                document.getElementById('table-container').style.display = 'flex';
+
+                let rgbUpperStr = `rgba(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b}`;
+                targetProvinces.forEach(p => {
+                    const ctx = document.getElementById(`sparkline-${p.name}`);
+                    if(!ctx) return;
+                    let pTrends = trendScoreData.filter(tr => tr.province_name === p.name && tr.topic_name === currentIndex);
+                    pTrends.sort((a, b) => Number(a.year) - Number(b.year));
+
+                    let chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: pTrends.map(tr => tr.year),
+                            datasets: [{
+                                data: pTrends.map(tr => Number(tr.index_score)),
+                                borderColor: p.name === selectedProvince ? '#e11d48' : rgbUpperStr + ', 1)',
+                                borderWidth: 2, fill: true,
+                                backgroundColor: p.name === selectedProvince ? 'rgba(225, 29, 72, 0.1)' : rgbUpperStr + ', 0.15)',
+                                pointRadius: 0, tension: 0.3
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                            scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } },
+                            animation: false
+                        }
+                    });
+                    sparklineCharts.push(chart);
+                });
+            });
+        }
+
+        function getProvinceScore(provName, topicName) {
+            let row = mapScoresData.find(m => m.province_name === provName && m.topic_name === topicName);
+            return row ? Number(row.index_score) : 50;
+        }
+
+        function getProvincePop(provName) {
+            let row = mapScoresData.find(m => m.province_name === provName);
+            return row && row.province_pop ? Number(row.province_pop) : 2000000;
+        }
+
+        function resetToChartPanel() {
+            document.getElementById('table-container').style.display = 'none';
+            document.getElementById('province-details').style.display = 'block';
+            if (selectedProvince) {
+                document.getElementById('chart-wrapper').style.display = 'block';
+                document.getElementById('btn-similar').style.display = 'flex';
+                document.getElementById('btn-problem').style.display = 'flex';
+            } else {
+                updateDefaultPanel();
+            }
+            similarProvinces = [];
+            updateMapStyles();
+        }
+
+        function clearSelection() {
+            if (!selectedProvince) return;
+            selectedProvince = null;
+            similarProvinces = [];
+            updateMapStyles();
+            map.closePopup();
+            document.getElementById('table-container').style.display = 'none';
+            resetToChartPanel();
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomSnap: 0.5, maxZoom: 8 }).setView([32.4279, 53.6880], 5.5);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 20
+            }).addTo(map);
+            map.on('click', clearSelection);
+        }
+
+        function updateMapStyles() {
+            if (!geojsonLayer) return;
+            geojsonLayer.eachLayer(function (layer) {
+                const provName = layer.feature.properties.ADM1_FA || "استان ناشناخته";
+                let score = getProvinceScore(provName, currentIndex);
+                let fColor = getHeatmapColor(score);
+                let fOpac = 0.85, bColor = "#ffffff", bWeight = 1.5;
+
+                if (hoveredStageIndex !== null) {
+                    let stageSize = 100 / (heatStages - 1);
+                    let lowerBound = hoveredStageIndex * stageSize - (hoveredStageIndex === 0 ? 1 : 0.01);
+                    let upperBound = (hoveredStageIndex + 1) * stageSize;
+                    if (hoveredStageIndex === heatStages - 1) upperBound = 100.1;
+                    if (score >= lowerBound && score <= upperBound) { fOpac = 0.95; bColor = "#000"; bWeight = 2.5; } 
+                    else { fOpac = 0.15; bColor = "#ccc"; bWeight = 1; }
+                }
+
+                if (provName === selectedProvince) { fColor = "#e11d48"; fOpac = 0.9; bColor = "#9f1239"; bWeight = 2.5; } 
+                else if (similarProvinces.includes(provName)) { fColor = "#ffb74d"; fOpac = 0.8; bColor = "#ff9800"; bWeight = 2; }
+                layer.setStyle({ color: bColor, weight: bWeight, fillColor: fColor, fillOpacity: fOpac });
+            });
+        }
+
+        function showMapPopup(provName) {
+            if(mapPopupChart) { mapPopupChart.destroy(); mapPopupChart = null; }
+            map.closePopup();
+            
+            let layerMatch = null;
+            geojsonLayer.eachLayer(l => { if(l.feature.properties.ADM1_FA === provName) layerMatch = l; });
+            if(!layerMatch) return;
+
+            const bounds = layerMatch.getBounds();
+            map.flyToBounds(bounds, { maxZoom: 6.2, paddingTopLeft: [50, 200], paddingBottomRight: [50, 50], duration: 1.5 });
+            const popupPos = L.latLng(bounds.getNorth(), bounds.getCenter().lng);
+
+            let pTrends = trendScoreData.filter(tr => tr.province_name === provName && tr.topic_name === currentIndex);
+            pTrends.sort((a, b) => Number(a.year) - Number(b.year));
+
+            const canvasId = 'popupCanvas_' + Date.now();
+            L.popup({ className: 'glass-popup', closeButton: false, autoClose: false, closeOnClick: false, offset: [0, -10] })
+            .setLatLng(popupPos)
+            .setContent(`
+                <div style="width: 270px; text-align: center;">
+                    <div style="font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 8px;">روند زمانی - ${provName}</div>
+                    <div style="height: 140px; width: 100%;"><canvas id="${canvasId}"></canvas></div>
+                </div>
+            `).openOn(map);
+
+            let rgbUpperStr = `rgba(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b}`;
+
+            setTimeout(() => {
+                const ctx = document.getElementById(canvasId);
+                if(!ctx) return;
+                mapPopupChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: pTrends.map(tr => tr.year),
+                        datasets: [{
+                            label: 'امتیاز شاخص', data: pTrends.map(tr => Number(tr.index_score)),
+                            borderColor: rgbUpperStr + ', 1)', backgroundColor: rgbUpperStr + ', 0.15)', borderWidth: 2, fill: true,
+                            pointBackgroundColor: '#e11d48', pointBorderColor: '#fff', pointRadius: 4, pointHoverRadius: 6, tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                        scales: { 
+                            x: { ticks: { font: { size: 9 }, color: '#555' }, grid: { display: false } }, 
+                            y: { min: 0, max: 100, ticks: { font: { size: 9 }, color: '#555', stepSize: 25 }, grid: { color: 'rgba(0,0,0,0.08)' } }
+                        }, animation: { duration: 800 }
+                    }
+                });
+            }, 150); 
+        }
+
+        function renderMapData(geojsonData) {
+            loadedGeoJSON = geojsonData;
+            geojsonLayer = L.geoJSON(geojsonData, {
+                onEachFeature: function (feature, layer) {
+                    const provName = feature.properties.ADM1_FA || "استان ناشناخته";
+                    layer.bindTooltip(`<strong>${provName}</strong>`, { sticky: true, className: 'custom-tooltip' });
+                    layer.on('mouseover', (e) => { e.target.setStyle({ weight: 2.5 }).bringToFront(); });
+                    layer.on('mouseout', () => { updateMapStyles(); });
+                    layer.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e); 
+                        selectedProvince = provName;
+                        resetToChartPanel(); 
+                        updateRightPanel(provName);
+                        showMapPopup(provName);
+                    });
+                }
+            }).addTo(map);
+            updateMapStyles(); 
+            updateDefaultPanel();
+        }
+
+        function updateDefaultPanel() {
+            let tObj = topicsData.find(t => t.topic_name === currentIndex);
+            let desc = tObj ? tObj.topic_description : "";
+
+            document.getElementById('province-details').innerHTML = `
+                <h3 style="margin-bottom: 5px; color: #333333; font-size: 1.2rem; font-weight: bold;">توضیحات شاخص</h3>
+                <p style="margin-top: 0; font-size: 0.85em; color: #666666; font-weight: bold;">شاخص: ${currentIndex}</p>
+                <div class="index-description-text">${desc}</div>
+            `;
+
+            document.getElementById('chart-wrapper').style.display = 'none';
+            document.getElementById('btn-similar').style.display = 'none';
+            document.getElementById('btn-problem').style.display = 'none';
+            if (rankingBarChart) { rankingBarChart.destroy(); rankingBarChart = null; }
+        }
+
+        function updateRightPanel(provinceName) {
+            let tObj = topicsData.find(t => t.topic_name === currentIndex);
+            let desc = tObj ? tObj.topic_description : "";
+            let score = getProvinceScore(provinceName, currentIndex);
+            let pop = getProvincePop(provinceName);
+
+            document.getElementById('province-details').innerHTML = `
+                <h3 style="margin-bottom: 5px; color: #333333; font-size: 1.4rem; font-weight: bold;">${provinceName}</h3>
+                <div style="display:inline-flex; align-items:center; background:#f4f7f6; border:1px solid #c1d5e0; padding:6px 14px; border-radius:20px; color:#0078d7; font-size:0.9rem; font-weight:bold; margin-bottom:15px; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                    <svg style="width:18px;height:18px;margin-left:8px;fill:#0078d7;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    جمعیت: ${pop.toLocaleString('fa-IR')} نفر
+                </div>
+                <div class="index-description-text">
+                    <strong style="color: #333; display:block; margin-bottom:5px;">${currentIndex} (امتیاز: ${score})</strong>
+                    ${desc}
+                </div>
+            `;
+
+            document.getElementById('chart-wrapper').style.display = 'block';
+            document.getElementById('btn-similar').style.display = 'flex';
+            document.getElementById('btn-problem').style.display = 'flex';
+
+            let sortedProvs = mapScoresData.filter(m => m.topic_name === currentIndex).map(m => ({ name: m.province_name, score: Number(m.index_score) }));
+            sortedProvs.sort((a, b) => b.score - a.score);
+
+            if (rankingBarChart) { rankingBarChart.destroy(); }
+            const canvas = document.getElementById('rankingBarChart');
+            
+            let rgbUpperStr = `rgba(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b}`;
+            
+            rankingBarChart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: sortedProvs.map(p => p.name),
+                    datasets: [{
+                        label: 'امتیاز', data: sortedProvs.map(p => p.score),
+                        backgroundColor: sortedProvs.map(p => p.name === provinceName ? '#e11d48' : getHeatmapColor(p.score)),
+                        borderColor: sortedProvs.map(p => p.name === provinceName ? '#9f1239' : rgbUpperStr + ', 1)'),
+                        borderWidth: 1, borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { font: { size: 9 }, color: '#333', maxRotation: 90, minRotation: 45 }, grid: { display: false } },
+                        y: { min: 0, max: 100, ticks: { font: { size: 9 }, color: '#333' } }
+                    }
+                }
+            });
+        }
+
+        loadAllData();
+    </script>
 </body>
 </html>
