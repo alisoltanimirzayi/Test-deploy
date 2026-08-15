@@ -1,6 +1,6 @@
 async function loadAndDrawChart() {
     try {
-        let response = await fetch("http://127.0.0.1:8000/api/chart-data");
+        let response = await fetch("https://test-deploy-0iuy.onrender.com/api/chart-data");
         let result = await response.json(); 
 
         let years = result.data.map(row => row.years);
