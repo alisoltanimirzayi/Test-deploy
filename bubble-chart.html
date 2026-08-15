@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نمودار حبابی شاخص‌ها</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #ffffff; }
+        .slider-control {
+            -webkit-appearance: none; 
+            width: 100%; 
+            height: 6px; 
+            border-radius: 5px;
+            background: #e5e7eb; 
+            outline: none; 
+            margin-top: 10px;
+            transition: all 0.15s ease-out;
+        }
+        .slider-control::-webkit-slider-thumb {
+            -webkit-appearance: none; 
+            appearance: none;
+            width: 18px; 
+            height: 18px; 
+            border-radius: 50%; 
+            background: #2563eb; 
+            cursor: pointer; 
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            position: relative;
+            z-index: 10;
+        }
+        .slider-control::-webkit-slider-thumb:hover { transform: scale(1.3); background: #1d4ed8; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+    
+    <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10 shrink-0">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800" id="page-title">نمودار حبابی</h1>
+            <p class="text-xs text-gray-500 mt-1" id="page-subtitle">در حال بارگذاری...</p>
+        </div>
+        <a href="explorer.html" class="text-sm font-bold text-blue-700 hover:bg-blue-50 transition px-4 py-2 rounded-lg border">
+            بازگشت به انتخاب شاخص
+        </a>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Main Chart Area -->
+        <main class="flex-1 flex flex-col p-6 relative" id="chart-container">
+            <div id="plot-wrapper" class="flex-1 rounded-2xl shadow-sm border p-4 relative flex flex-col transition-colors duration-500">
+                <canvas id="bubbleChart"></canvas>
+            </div>
+        </main>
+
+        <!-- Left Sidebar (in RTL structure this acts as left panel) -->
+        <aside class="w-80 bg-white border-r flex flex-col shrink-0 shadow-lg z-10 overflow-hidden">
+            
+            <!-- Top Section: Guide -->
+            <div class="p-5 border-b bg-blue-50/40 text-blue-900 shrink-0">
+                <h3 class="font-bold mb-2 text-blue-800 text-sm"><i class="fa-solid fa-circle-info ml-1"></i> راهنمای تعامل با نمودار</h3>
+                <p class="text-[13px] leading-relaxed text-justify">
+                    در این صفحه می‌توانید با تغییر وزن هر شاخص (از ۱- تا ۱+)، میزان تاثیر آن را بر امتیاز نهایی استان‌ها در نمودار حبابی شخصی‌سازی کنید. با حرکت دادن اسلایدرها، موقعیت حباب‌ها به‌صورت لحظه‌ای تغییر می‌کند.<br><br>
+                    <strong>توجه:</strong> تمامی محاسبات همیشه بر اساس آخرین و جدیدترین داده‌های منتشر شده برای هر شاخص انجام می‌شوند.
+                </p>
+            </div>
+
+            <!-- Bottom Section: Indicators & Weights -->
+            <div class="p-4 border-b bg-gray-50 shrink-0">
+                <h2 class="font-bold text-gray-800">وزن‌دهی شاخص‌ها</h2>
+                <p class="text-xs text-gray-500 mt-1">تاثیر هر شاخص را مانند محور X تنظیم کنید</p>
+            </div>
+            
+            <div class="p-5 flex flex-col gap-6 overflow-y-auto flex-1" id="indicators-list">
+                <!-- Sliders generated here -->
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        Chart.defaults.font.family = "'Vazirmatn', sans-serif";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTopic = urlParams.get('topic');
+        const urlSubtopic = urlParams.get('subtopic');
+        
+        let rawData = [];
+        let topicsColorData = [];
+        let indicators = [];
+        let indicatorWeights = {};
+        let chartObj = null;
+        
+        let themeUpper = '#2563eb';
+        let themeLower = '#e2e8f0';
+        let uniqueProvinces = [];
+
+        // Function to make a HEX color brighter by a percentage
+        function brightenColor(hex, percent) {
+            hex = hex.replace('#', '');
+            if (hex.length === 3) {
+                hex = hex.split('').map(c => c + c).join('');
+            }
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            
+            // Move colors toward 255 (white) based on the percentage
+            r = Math.round(r + (255 - r) * percent);
+            g = Math.round(g + (255 - g) * percent);
+            b = Math.round(b + (255 - b) * percent);
+            
+            const toHex = (n) => {
+                const hexVal = n.toString(16);
+                return hexVal.length === 1 ? '0' + hexVal : hexVal;
+            };
+            
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+
+        function parseCSV(text) {
+            let lines = text.trim().split(/\r\n|\n/);
+            if(lines.length === 0) return [];
+            let headers = lines[0].split(',').map(e => e.replace(/^"|"$/g, '').trim());
+            let result = [];
+            for(let i=1; i<lines.length; i++) {
+                let currentLine = lines[i].split(',').map(e => e.replace(/^"|"$/g, '').trim());
+                if(currentLine.length === headers.length) {
+                    let obj = {};
+                    for(let j=0; j<headers.length; j++) obj[headers[j]] = currentLine[j];
+                    result.push(obj);
+                }
+            }
+            return result;
+        }
+
+        async function init() {
+            if(!urlTopic || !urlSubtopic) {
+                alert("پارامترهای صفحه نامعتبر است!");
+                return;
+            }
+            document.getElementById('page-title').innerText = `نمودار حبابی: ${urlSubtopic}`;
+            document.getElementById('page-subtitle').innerText = `حوزه: ${urlTopic}`;
+
+            try {
+                const [dataRes, colorRes] = await Promise.all([
+                    fetch('data/kbubble_score.csv'), fetch('data/topics.csv')
+                ]);
+                
+                let allData = parseCSV(await dataRes.text());
+                topicsColorData = parseCSV(await colorRes.text());
+                
+                let colorRow = topicsColorData.find(t => t.topic_name === urlTopic);
+                if(colorRow) {
+                    if(colorRow.upper_color) themeUpper = colorRow.upper_color;
+                    if(colorRow.lower_color) themeLower = colorRow.lower_color;
+                }
+                
+                // Set the background to 30% brighter than the lower_color
+                document.getElementById('plot-wrapper').style.backgroundColor = brightenColor(themeLower, 0.3); 
+
+                rawData = allData.filter(d => d.topic_name === urlTopic && d.subtopic_name === urlSubtopic);
+                
+                if(rawData.length === 0) {
+                    alert("داده‌ای برای این زیرحوزه در فایل kbubble_score.csv یافت نشد.");
+                    return;
+                }
+
+                uniqueProvinces = [...new Set(rawData.map(d => d.province_name))].sort();
+                
+                let indSet = new Set(rawData.map(d => d.indicator_name));
+                indicators = [...indSet];
+
+                indicators.forEach(ind => {
+                    indicatorWeights[ind] = 0; // Default weight is 0
+                });
+
+                buildSliders();
+                drawChart();
+
+            } catch (err) {
+                console.error("Error Loading Data:", err);
+                alert("مشکل در بارگذاری فایل kbubble_score.csv");
+            }
+        }
+
+        function buildSliders() {
+            const container = document.getElementById('indicators-list');
+            container.innerHTML = '';
+            indicators.forEach(ind => {
+                const div = document.createElement('div');
+                div.className = "flex flex-col";
+                // X-axis slider structure
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-bold text-gray-700 truncate max-w-[200px]" title="${ind}">${ind}</span>
+                        <span class="text-xs font-mono bg-white border border-gray-200 px-2 py-1 rounded w-10 text-center" id="val-${ind}">${indicatorWeights[ind]}</span>
+                    </div>
+                    <div class="relative w-full" dir="ltr">
+                        <div class="absolute left-1/2 top-[14px] bottom-0 w-px h-2 bg-gray-400 -translate-x-1/2 z-0"></div>
+                        <input type="range" class="slider-control relative z-10" min="-1" max="1" step="0.1" value="${indicatorWeights[ind]}" 
+                               oninput="updateWeight('${ind}', this.value)">
+                        <div class="flex justify-between text-[11px] text-gray-400 mt-1 px-1 font-mono font-bold">
+                            <span>-1</span>
+                            <span>0</span>
+                            <span>1</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateWeight(indName, value) {
+            indicatorWeights[indName] = Number(value);
+            document.getElementById(`val-${indName}`).innerText = value;
+            updateChartData();
+        }
+
+        function calculateSubtopicScore(prov) {
+            let product = 1;
+            let activeCount = 0;
+            
+            indicators.forEach(ind => {
+                let weight = indicatorWeights[ind];
+                if (weight === 0) return;
+
+                let indRecords = rawData.filter(d => d.province_name === prov && d.indicator_name === ind);
+                if (indRecords.length === 0) return;
+                
+                // Always fetch the latest available year for this indicator
+                let latestYearForInd = Math.max(...indRecords.map(d => Number(d.year)));
+                let record = indRecords.find(d => Number(d.year) === latestYearForInd);
+                let val = record ? Number(record.value) : 1;
+                
+                product *= (val * weight);
+                activeCount++;
+            });
+
+            if(activeCount === 0) return 0;
+            let sign = product < 0 ? -1 : 1;
+            return sign * Math.pow(Math.abs(product), 1 / activeCount);
+        }
+
+        function getChartData() {
+            let datasetsData = [];
+            uniqueProvinces.forEach((prov, index) => {
+                let score = calculateSubtopicScore(prov);
+                datasetsData.push({
+                    x: index, 
+                    y: score, 
+                    r: 22, 
+                    provName: prov 
+                });
+            });
+            return datasetsData;
+        }
+
+        function drawChart() {
+            const ctx = document.getElementById('bubbleChart').getContext('2d');
+            
+            chartObj = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'استان‌ها',
+                        data: getChartData(),
+                        backgroundColor: themeUpper + 'D9',
+                        borderColor: themeUpper,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 300, easing: 'easeOutQuad' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.raw.provName} - امتیاز: ${ctx.raw.y.toFixed(2)}`
+                            }
+                        },
+                        datalabels: {
+                            color: '#ffffff',
+                            align: 'center',
+                            anchor: 'center',
+                            textAlign: 'center',
+                            font: { family: 'Vazirmatn', size: 9, weight: 'bold' },
+                            formatter: (value) => {
+                                let name = value.provName || '';
+                                return name.includes(' ') ? name.split(' ') : name;
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false, 
+                            min: -1, max: uniqueProvinces.length 
+                        },
+                        y: {
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            title: { display: true, text: 'امتیاز زیرحوزه (محاسبه شده)', font: { size: 14, family: 'Vazirmatn' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartData() {
+            if(!chartObj) return;
+            chartObj.data.datasets[0].data = getChartData();
+            chartObj.update();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
