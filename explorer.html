@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>کاوشگر داده - سامانه تصمیم‌ یار فرهنگی و اجتماعی</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Vazirmatn) -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f4f7f6; overflow-x: hidden;}
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px;}
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .diagonal-container { display: flex; height: 100vh; width: 100vw; overflow: hidden; background: #222; }
+        .diagonal-panel {
+            flex: 1; transform: skewX(-10deg); 
+            border-right: 2px solid rgba(255,255,255,0.2);
+            cursor: pointer; transition: flex 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative; 
+        }
+        .diagonal-panel:hover { flex: 1.5; z-index: 10; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        .diagonal-panel:first-child::before { content: ''; position: absolute; top: 0; right: -15vh; bottom: 0; width: 15vh; background-color: inherit; z-index: 0; }
+        .diagonal-panel:last-child::before { content: ''; position: absolute; top: 0; left: -15vh; bottom: 0; width: 15vh; background-color: inherit; z-index: 0; }
+        .diagonal-panel::after { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%); pointer-events: none; z-index: 1; }
+        .diagonal-panel:first-child::after { right: -15vh; }
+        .diagonal-panel:last-child::after { left: -15vh; }
+        .diagonal-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: skewX(10deg); text-align: center; padding: 20px; z-index: 2; }
+        .diagonal-title { color: #fff; font-weight: 800; font-size: 1.5rem; text-shadow: 0 4px 10px rgba(0,0,0,0.6); writing-mode: vertical-rl; transform: rotate(-170deg); transition: transform 0.3s; white-space: nowrap; }
+        .diagonal-panel:hover .diagonal-title { transform: rotate(-90deg) scale(1.1); }
+
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .subtopic-card {
+            background-size: cover;
+            background-position: center;
+        }
+        .subtopic-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%);
+            transition: background 0.3s ease;
+        }
+
+        /* Dynamic Hover Styles for Colors */
+        .dynamic-topic-card:hover {
+            border-color: var(--topic-color) !important;
+        }
+        .dynamic-topic-btn {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+        }
+        .dynamic-topic-card:hover .dynamic-topic-btn {
+            background-color: var(--topic-color) !important;
+        }
+        .dynamic-topic-card:hover .dynamic-topic-overlay {
+            background: linear-gradient(to top, var(--topic-color) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%) !important;
+            opacity: 0.9 !important;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header id="main-header" class="hidden bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg shadow-md"><i class="fa-solid fa-chart-pie text-xl"></i></div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-800">کاوشگر داده</h1>
+                <p class="text-xs text-gray-500">انتخاب زیر حوزه‌ها برای ورود به نمودار حبابی یا انتخاب شاخص</p>
+            </div>
+        </div>
+        <a href="index.html" class="text-sm font-bold text-blue-700 hover:text-blue-900 transition flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 shadow-sm hover:shadow-md">
+            <i class="fa-solid fa-map-location-dot text-lg"></i> <span>بازگشت به اطلس جامع استان‌ها</span>
+        </a>
+    </header>
+
+    <!-- VIEW 1: DIAGONAL LANDING -->
+    <div id="view-landing" class="flex-1 overflow-hidden relative fade-in">
+        <div class="absolute top-6 right-6 z-50">
+            <a href="index.html" class="text-white bg-black/40 hover:bg-black/70 backdrop-blur-md px-5 py-3 rounded-xl font-bold transition shadow-lg flex items-center gap-2 border border-white/20">
+                <i class="fa-solid fa-map-location-dot"></i> بازگشت به نقشه
+            </a>
+        </div>
+        <div class="diagonal-container" id="diagonal-menu"></div>
+    </div>
+
+    <!-- VIEW 1B: HORIZONTAL SUBTOPICS MENU -->
+    <div id="view-subtopics" class="hidden flex-1 flex flex-col bg-gray-50 fade-in">
+        <div class="p-6 shrink-0 flex items-center">
+            <button onclick="goBackToLanding()" class="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-2 transition bg-white px-4 py-2 rounded-lg shadow-sm border">
+                <i class="fa-solid fa-arrow-right"></i> بازگشت به حوزه‌ها
+            </button>
+            <h2 id="subtopics-header" class="text-3xl font-extrabold text-gray-800 mr-6 border-r-4 border-blue-600 pr-4">نام حوزه</h2>
+        </div>
+        
+        <!-- FIX 2: Changed items-center to items-start, added pt-10 pb-20 to align tops perfectly parallel -->
+        <div id="subtopics-container" class="flex-1 flex items-start justify-center overflow-x-auto overflow-y-auto px-10 gap-6 custom-scrollbar pt-10 pb-20">
+            <!-- Filled dynamically -->
+        </div>
+    </div>
+
+    <!-- VIEW 2: DASHBOARD & CHART -->
+    <div id="view-dashboard" class="hidden flex-1 overflow-hidden flex bg-gray-50 fade-in">
+        <!-- Main Content (Chart) -->
+        <main class="flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-5">
+                <button onclick="goBackToSubtopics()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-right"></i> بازگشت به انتخاب شاخص
+                </button>
+            </div>
+
+            <!-- Separated Top Section: 0.5 Inch Gap -->
+            <div class="flex flex-col lg:flex-row mb-6" style="gap: 0.5in;">
+                
+                <!-- Title & Meta Box -->
+                <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 rounded-2xl shadow-lg p-6 relative overflow-hidden text-white flex-1 flex flex-col justify-center">
+                    <div class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute bottom-0 left-0 -mb-16 -ml-16 w-48 h-48 bg-blue-400 opacity-20 rounded-full blur-2xl pointer-events-none"></div>
+                    
+                    <div class="relative z-10 w-full">
+                        <h2 id="indicator-title" class="text-3xl font-black mb-5 text-white drop-shadow-md">نام شاخص</h2>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span id="indicator-source" class="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-4 py-2.5 text-sm rounded-xl font-medium border border-white/10 shadow-inner">
+                                <i class="fa-solid fa-database text-blue-200"></i> منبع: نامشخص
+                            </span>
+                            <span id="indicator-period" class="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-4 py-2.5 text-sm rounded-xl font-medium border border-white/20 shadow-inner">
+                                <i class="fa-regular fa-calendar text-blue-200"></i> دوره: نامشخص
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Definition Box -->
+                <div class="bg-gradient-to-l from-indigo-700 via-blue-600 to-blue-700 rounded-2xl shadow-lg p-6 relative overflow-hidden text-white flex-1 flex flex-col justify-center">
+                    <div class="absolute top-0 left-0 -mt-16 -ml-16 w-48 h-48 bg-white opacity-5 rounded-full blur-2xl pointer-events-none"></div>
+                    
+                    <h3 class="text-sm font-bold text-blue-200 mb-3 flex items-center gap-2 relative z-10">
+                        <i class="fa-solid fa-book-open"></i> تعریف شاخص
+                    </h3>
+                    <p id="insight-text" class="text-white/95 text-sm leading-relaxed text-justify font-medium relative z-10">
+                        در حال بارگذاری اطلاعات...
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Redesigned Chart Container -->
+            <div class="bg-gradient-to-br from-white via-[#f8fafc] to-[#eff6ff] rounded-2xl shadow-md border border-blue-100 p-6 flex-1 relative flex flex-col min-h-[450px] overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent pointer-events-none"></div>
+                
+                <h3 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 relative z-10">
+                    <i class="fa-solid fa-chart-line text-blue-600"></i> روند تغییرات زمانی شاخص
+                </h3>
+                
+                <div class="flex-1 relative w-full h-full z-10" id="canvas-reveal-wrapper">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar (Provinces Filter) -->
+        <aside class="w-80 bg-white border-r flex flex-col shrink-0 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
+            <div class="p-5 border-b bg-gray-50">
+                <h2 class="text-base font-bold text-gray-800 mb-4"><i class="fa-solid fa-map-location-dot text-blue-600 ml-2"></i> مقایسه استانی</h2>
+                <div class="relative mb-4">
+                    <input type="text" id="province-search" onkeyup="filterProvinces()" placeholder="جستجوی استان..." class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow">
+                    <i class="fa-solid fa-search absolute right-3.5 top-3 text-gray-400"></i>
+                </div>
+                <div class="flex justify-between items-center bg-white rounded-lg border p-1 shadow-sm">
+                    <button onclick="selectAllProvinces()" class="flex-1 text-xs text-blue-700 hover:bg-blue-50 font-medium transition py-2 rounded-md">انتخاب همه</button>
+                    <div class="w-px h-4 bg-gray-200"></div>
+                    <button onclick="clearAllProvinces()" class="flex-1 text-xs text-red-600 hover:bg-red-50 font-medium transition py-2 rounded-md">پاک کردن همه</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-5" id="provinces-list">
+                <!-- Checkboxes filled by JS -->
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        Chart.defaults.font.family = "'Vazirmatn', sans-serif";
+
+        // FIX 1: Plugin smoothly clips ONLY individual datasets before they draw, leaving axes static
+        Chart.register({
+            id: 'lineSweepPlugin',
+            beforeDatasetDraw(chart, args) {
+                const ds = chart.data.datasets[args.index];
+                if (ds.sweepProgress !== undefined && ds.sweepProgress < 1) {
+                    const ctx = chart.ctx;
+                    const { top, left, width, height } = chart.chartArea;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(left, top - 20, width * ds.sweepProgress, height + 40);
+                    ctx.clip();
+                }
+            },
+            afterDatasetDraw(chart, args) {
+                const ds = chart.data.datasets[args.index];
+                if (ds.sweepProgress !== undefined && ds.sweepProgress < 1) {
+                    chart.ctx.restore();
+                }
+            }
+        });
+
+        let sweepReq = null;
+        let sweepStartTime = null;
+
+        function startSweep(chart) {
+            if (sweepReq) cancelAnimationFrame(sweepReq);
+            sweepStartTime = null;
+            
+            // Only animate datasets that need it
+            let datasetsToSweep = chart.data.datasets.filter(ds => ds.sweepProgress !== undefined && ds.sweepProgress < 1);
+            if(datasetsToSweep.length === 0) return;
+            
+            function animate(timestamp) {
+                if (!sweepStartTime) sweepStartTime = timestamp;
+                let progress = (timestamp - sweepStartTime) / 1500; 
+                
+                if (progress >= 1) {
+                    datasetsToSweep.forEach(ds => ds.sweepProgress = 1);
+                    chart.draw();
+                    return;
+                }
+                
+                let curvedProgress = 1 - Math.pow(1 - progress, 3); 
+                datasetsToSweep.forEach(ds => ds.sweepProgress = curvedProgress);
+                chart.draw();
+                sweepReq = requestAnimationFrame(animate);
+            }
+            sweepReq = requestAnimationFrame(animate);
+        }
+
+        let ktopicsData = [];
+        let kdescData = [];
+        let kscoreData = [];
+        let topicsColorData = []; 
+        let topicsHierarchy = {};
+
+        let activeDatasets = []; 
+        let provincesList = [];
+        let chartInstance = null;
+        let activeIndicatorGlob = null;
+        let activeTopicGlob = null;
+        let currentChartYears = [];
+        
+        let isBulkAction = true; 
+
+        let hiddenDatasets = {};
+        
+        const provinceColorPalette = [
+            '#e6194B', '#f59e0B', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', 
+            '#d946ef', '#06b6d4', '#14b8a6', '#84cc16', '#eab308', '#f97316', '#ef4444',
+            '#6366f1', '#a855f7', '#0ea5e9', '#059669', '#65a30d', '#ca8a04', '#ea580c',
+            '#dc2626', '#4f46e5', '#9333ea', '#0284c7', '#0d9488', '#4d7c0f', '#b45309',
+            '#c2410c', '#b91c1c', '#4338ca', '#7e22ce'
+        ];
+        let provinceColors = {};
+
+        function toFa(num) {
+            if (num === null || num === undefined) return '';
+            return num.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+        }
+
+        function parseCSV(text) {
+            let lines = text.trim().split(/\r\n|\n/);
+            if(lines.length === 0) return [];
+            let headers = parseCSVLine(lines[0]);
+            let result = [];
+            for(let i=1; i<lines.length; i++) {
+                let currentLine = parseCSVLine(lines[i]);
+                if(currentLine.length === headers.length) {
+                    let obj = {};
+                    for(let j=0; j<headers.length; j++) obj[headers[j].trim()] = currentLine[j].trim();
+                    result.push(obj);
+                }
+            }
+            return result;
+        }
+
+        function parseCSVLine(line) {
+            let result = [];
+            let insideQuote = false;
+            let entry = "";
+            for(let i=0; i<line.length; i++) {
+                let char = line[i];
+                if(char === '"') insideQuote = !insideQuote;
+                else if(char === ',' && !insideQuote) { result.push(entry); entry = ""; }
+                else entry += char;
+            }
+            result.push(entry);
+            return result.map(e => e.replace(/^"|"$/g, ''));
+        }
+
+        async function loadExplorerData() {
+            try {
+                const [tRes, dRes, sRes, tcRes] = await Promise.all([
+                    fetch('data/ktopics.csv'), fetch('data/kdescription.csv'), fetch('data/kindicator_score.csv'), fetch('data/topics.csv')
+                ]);
+
+                ktopicsData = parseCSV(await tRes.text());
+                kdescData = parseCSV(await dRes.text());
+                kscoreData = parseCSV(await sRes.text());
+                topicsColorData = parseCSV(await tcRes.text());
+
+                ktopicsData.forEach(row => {
+                    if(!topicsHierarchy[row.topic_name]) topicsHierarchy[row.topic_name] = {};
+                    if(!topicsHierarchy[row.topic_name][row.subtopic_name]) topicsHierarchy[row.topic_name][row.subtopic_name] = [];
+                    if(!topicsHierarchy[row.topic_name][row.subtopic_name].includes(row.indicator_name)) {
+                        topicsHierarchy[row.topic_name][row.subtopic_name].push(row.indicator_name);
+                    }
+                });
+
+                let provSet = new Set(kscoreData.map(d => d.province_name));
+                provSet.delete('کل کشور');
+                provincesList = [...provSet].sort();
+
+                provincesList.forEach((prov, i) => {
+                    provinceColors[prov] = provinceColorPalette[i % provinceColorPalette.length];
+                });
+
+                renderDiagonalMenu();
+                renderProvincesList();
+
+            } catch (err) {
+                console.error("Error Loading CSVs", err);
+                alert("مشکل در بارگذاری فایل‌های داده.");
+            }
+        }
+
+        function renderDiagonalMenu() {
+            const container = document.getElementById('diagonal-menu');
+            container.innerHTML = '';
+            Object.keys(topicsHierarchy).forEach((topic) => {
+                let tcRow = topicsColorData.find(t => t.topic_name === topic);
+                let panelColor = tcRow && tcRow.upper_color ? tcRow.upper_color : '#0078d7';
+                
+                const panel = document.createElement('div');
+                panel.className = 'diagonal-panel group';
+                panel.style.backgroundColor = panelColor;
+                
+                panel.innerHTML = `<div class="diagonal-content"><h2 class="diagonal-title">${topic}</h2></div>`;
+                panel.onclick = () => openSubtopics(topic);
+                container.appendChild(panel);
+            });
+        }
+
+        function openSubtopics(topic) {
+            activeTopicGlob = topic;
+            document.getElementById('view-landing').classList.add('hidden');
+            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('view-subtopics').classList.remove('hidden');
+            
+            let tcRow = topicsColorData.find(t => t.topic_name === topic);
+            let accentColor = tcRow && tcRow.upper_color ? tcRow.upper_color : '#0078d7';
+
+            document.getElementById('subtopics-header').innerText = topic;
+            document.getElementById('subtopics-header').style.borderColor = accentColor;
+            
+            const container = document.getElementById('subtopics-container');
+            container.innerHTML = '';
+
+            Object.keys(topicsHierarchy[topic]).forEach(sub => {
+                const targetUrl = `bubble-chart.html?topic=${encodeURIComponent(topic)}&subtopic=${encodeURIComponent(sub)}`;
+                const imagePath = `assets/images/${sub}.webp`;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col items-center shrink-0 w-72';
+
+                const card = document.createElement('div');
+                card.className = 'subtopic-card w-full h-[60vh] min-h-[400px] rounded-2xl shadow-lg relative flex flex-col justify-end group transition-transform hover:scale-105 border-4 border-transparent dynamic-topic-card overflow-hidden';
+                card.style.backgroundImage = `url('${imagePath}')`;
+                card.style.setProperty('--topic-color', accentColor);
+                
+                card.innerHTML = `
+                    <div class="subtopic-overlay absolute inset-0 transition-opacity group-hover:opacity-80 dynamic-topic-overlay"></div>
+                    
+                    <a href="${targetUrl}" class="absolute inset-0 z-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 mb-20 shadow-lg border border-white/20 dynamic-topic-btn">
+                            <i class="fa-solid fa-chart-scatter"></i> ورود به نمودار حبابی
+                        </div>
+                    </a>
+                `;
+
+                const whiteBox = document.createElement('div');
+                whiteBox.className = 'w-full mt-[-1in] bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-gray-100 transition-transform hover:-translate-y-2 relative z-10';
+                whiteBox.innerHTML = `
+                    <h4 class="font-black text-center text-gray-800 text-lg mb-3 border-b pb-2" style="border-color:${accentColor}">${sub}</h4>
+                    <div class="flex flex-col gap-2 text-sm text-gray-600 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                        ${topicsHierarchy[topic][sub].map(ind => `
+                            <button onclick="loadIndicator('${ind}', '${topic}')" class="w-full text-right flex items-center gap-2 hover:bg-gray-100 px-2 py-1.5 rounded transition">
+                                <div class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${accentColor}"></div>
+                                <span class="font-medium text-right w-full">${ind}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+
+                wrapper.appendChild(card);
+                wrapper.appendChild(whiteBox);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function loadIndicator(indicatorName, topicName) {
+            activeIndicatorGlob = indicatorName;
+            
+            document.getElementById('view-subtopics').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            document.getElementById('indicator-title').innerText = indicatorName;
+
+            let descRow = kdescData.find(d => d.indicator_name === indicatorName);
+            let srcName = descRow && descRow.source_name ? descRow.source_name : "مرکز آمار و مراجع رسمی";
+            let narrative = descRow && descRow.description ? descRow.description : "توضیحات تکمیلی برای این شاخص در دسترس نیست. برای بررسی روند به نمودار زمانی زیر مراجعه نمایید.";
+            
+            document.getElementById('indicator-source').innerHTML = `<i class="fa-solid fa-database text-blue-200"></i> منبع: ${srcName}`;
+            document.getElementById('insight-text').innerText = narrative;
+
+            let indRecords = kscoreData.filter(d => d.indicator_name === indicatorName);
+            let uniqueYears = [...new Set(indRecords.map(d => Number(d.year)))].sort((a,b)=>a-b);
+            currentChartYears = uniqueYears;
+
+            if(uniqueYears.length > 0) {
+                document.getElementById('indicator-period').innerHTML = `<i class="fa-regular fa-calendar text-blue-200"></i> دوره: ${uniqueYears[0]} - ${uniqueYears[uniqueYears.length-1]}`;
+            } else {
+                document.getElementById('indicator-period').innerHTML = `<i class="fa-regular fa-calendar text-blue-200"></i> دوره: نامشخص`;
+            }
+
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+
+            isBulkAction = true; 
+            setTimeout(drawChart, 50);
+        }
+
+        function goBackToLanding() {
+            document.getElementById('view-subtopics').classList.add('hidden');
+            document.getElementById('main-header').classList.add('hidden');
+            document.getElementById('view-landing').classList.remove('hidden');
+        }
+
+        function goBackToSubtopics() {
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-subtopics').classList.remove('hidden');
+        }
+
+        function renderProvincesList() {
+            const container = document.getElementById('provinces-list');
+            container.innerHTML = '';
+            provincesList.forEach(prov => {
+                const div = document.createElement('div');
+                div.className = 'province-item flex items-center mb-2 px-2 py-2 rounded-lg hover:bg-blue-50 transition border border-transparent hover:border-blue-100';
+                
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.id = `prov-${prov}`;
+                cb.className = 'w-5 h-5 rounded border-gray-300 focus:ring-0 cursor-pointer province-checkbox transition-colors';
+                cb.checked = activeDatasets.includes(prov);
+                cb.style.accentColor = provinceColors[prov];
+                
+                cb.addEventListener('change', (e) => {
+                    isBulkAction = false; 
+                    if(e.target.checked) { if(!activeDatasets.includes(prov)) activeDatasets.push(prov); } 
+                    else { activeDatasets = activeDatasets.filter(p => p !== prov); }
+                    if(activeIndicatorGlob) drawChart();
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = `prov-${prov}`;
+                label.className = 'ml-3 text-sm text-gray-700 cursor-pointer select-none flex-1 pr-3';
+                label.innerText = prov;
+                
+                div.appendChild(cb); 
+                div.appendChild(label); 
+                container.appendChild(div);
+            });
+        }
+
+        function filterProvinces() {
+            const term = document.getElementById('province-search').value;
+            const items = document.querySelectorAll('.province-item');
+            items.forEach(item => {
+                const label = item.querySelector('label').innerText;
+                item.style.display = label.includes(term) ? 'flex' : 'none';
+            });
+        }
+
+        function selectAllProvinces() {
+            activeDatasets = [...provincesList];
+            document.querySelectorAll('.province-checkbox').forEach(cb => cb.checked = true);
+            isBulkAction = true; 
+            if(activeIndicatorGlob) drawChart();
+        }
+
+        function clearAllProvinces() {
+            activeDatasets = [];
+            document.querySelectorAll('.province-checkbox').forEach(cb => cb.checked = false);
+            isBulkAction = true; 
+            if(activeIndicatorGlob) drawChart();
+        }
+
+        function getChartSeries(provName) {
+            let records = kscoreData.filter(d => d.indicator_name === activeIndicatorGlob && d.province_name === provName);
+            return currentChartYears.map(y => {
+                let rec = records.find(r => Number(r.year) === y);
+                return rec ? Number(rec.value) : null;
+            });
+        }
+
+        function drawChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            let desiredLabels = activeDatasets.slice();
+            let countrySeries = getChartSeries('کل کشور');
+            let hasCountry = countrySeries.some(v => v !== null);
+            
+            if(hasCountry) {
+                desiredLabels.unshift('میانگین کل کشور');
+            }
+
+            if (!chartInstance) {
+                const datasets = [];
+                if(hasCountry) {
+                    datasets.push({
+                        label: 'میانگین کل کشور', data: countrySeries,
+                        borderColor: '#1e293b', backgroundColor: 'rgba(30, 41, 59, 0.05)',
+                        borderWidth: 4, borderJoinStyle: 'round', borderCapStyle: 'round', tension: 0.4, fill: true, order: 1,
+                        borderDash: [8, 4],
+                        hidden: hiddenDatasets['میانگین کل کشور'] === true,
+                        animation: false,
+                        sweepProgress: 0 
+                    });
+                }
+                
+                activeDatasets.forEach((prov) => {
+                    datasets.push({
+                        label: prov, data: getChartSeries(prov),
+                        borderColor: provinceColors[prov], borderWidth: 2.5, borderJoinStyle: 'round', borderCapStyle: 'round',
+                        tension: 0.4, fill: false, pointBackgroundColor: 'white', pointBorderColor: provinceColors[prov], pointBorderWidth: 2, order: 2,
+                        animation: false,
+                        sweepProgress: 0
+                    });
+                });
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: currentChartYears.map(toFa), datasets: datasets },
+                    options: getChartOptions() 
+                });
+
+                startSweep(chartInstance);
+            } else {
+                let existingDatasets = chartInstance.data.datasets;
+                
+                for (let i = existingDatasets.length - 1; i >= 0; i--) {
+                    if (!desiredLabels.includes(existingDatasets[i].label)) {
+                        existingDatasets.splice(i, 1);
+                    }
+                }
+                
+                existingDatasets.forEach(ds => {
+                    if (isBulkAction) ds.sweepProgress = 0; // Reset all if bulk
+                });
+                
+                let existingLabels = existingDatasets.map(d => d.label);
+
+                if (hasCountry && !existingLabels.includes('میانگین کل کشور')) {
+                    existingDatasets.unshift({
+                        label: 'میانگین کل کشور', data: countrySeries,
+                        borderColor: '#1e293b', backgroundColor: 'rgba(30, 41, 59, 0.05)',
+                        borderWidth: 4, borderJoinStyle: 'round', borderCapStyle: 'round', tension: 0.4, fill: true, order: 1,
+                        borderDash: [8, 4],
+                        hidden: hiddenDatasets['میانگین کل کشور'] === true,
+                        animation: false,
+                        sweepProgress: 0
+                    });
+                }
+
+                activeDatasets.forEach((prov) => {
+                    if (!existingLabels.includes(prov)) {
+                        existingDatasets.push({
+                            label: prov, data: getChartSeries(prov),
+                            borderColor: provinceColors[prov], borderWidth: 2.5, borderJoinStyle: 'round', borderCapStyle: 'round',
+                            tension: 0.4, fill: false, pointBackgroundColor: 'white', pointBorderColor: provinceColors[prov], pointBorderWidth: 2, order: 2,
+                            animation: false,
+                            sweepProgress: 0 
+                        });
+                    }
+                });
+
+                chartInstance.data.labels = currentChartYears.map(toFa);
+                chartInstance.update('none'); 
+
+                startSweep(chartInstance);
+            }
+            isBulkAction = false; 
+        }
+
+        function getChartOptions() {
+            return {
+                responsive: true, maintainAspectRatio: false, 
+                interaction: { mode: 'nearest', intersect: true, axis: 'xy' },
+                plugins: {
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            font: { family: 'Vazirmatn', size: 13 }, 
+                            usePointStyle: false, 
+                            boxWidth: 16,
+                            boxHeight: 16,
+                            borderRadius: 4,
+                            padding: 20,
+                            filter: function(item, chart) {
+                                return item.text === 'میانگین کل کشور';
+                            }
+                        },
+                        onClick: function(e, legendItem, legend) {
+                            const index = legendItem.datasetIndex;
+                            const ci = legend.chart;
+                            const labelText = legendItem.text;
+
+                            if (ci.isDatasetVisible(index)) {
+                                ci.hide(index);
+                                legendItem.hidden = true;
+                                hiddenDatasets[labelText] = true; 
+                            } else {
+                                ci.show(index);
+                                legendItem.hidden = false;
+                                hiddenDatasets[labelText] = false; 
+                            }
+                        }
+                    },
+                    tooltip: {
+                        titleFont: { family: 'Vazirmatn', size: 14 }, bodyFont: { family: 'Vazirmatn', size: 13, weight: 'bold' }, rtl: true,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)', titleColor: '#1f2937', bodyColor: '#1f2937',
+                        borderColor: '#e5e7eb', borderWidth: 1, padding: 12, boxPadding: 6,
+                        displayColors: true
+                    }
+                },
+                scales: {
+                    x: { ticks: { font: { family: 'Vazirmatn' }, color: '#64748b' }, grid: { display: false } },
+                    y: { ticks: { font: { family: 'Vazirmatn' }, color: '#64748b' }, grid: { color: '#e2e8f0', drawBorder: false }, border: { dash: [4, 4] } }
+                }
+            };
+        }
+
+        window.onload = () => { loadExplorerData(); };
+    </script>
+</body>
+</html>
