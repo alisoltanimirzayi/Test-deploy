@@ -19,19 +19,12 @@
             --hover-bg: #eef2f5;
         }
 
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
+        *, *::before, *::after { box-sizing: border-box; }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Vazirmatn', Tahoma, sans-serif;
-            display: flex;
-            height: 100vh;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow: hidden;
+            margin: 0; padding: 0; font-family: 'Vazirmatn', Tahoma, sans-serif;
+            display: flex; flex-direction: column; height: 100vh;
+            background-color: var(--bg-color); color: var(--text-color); overflow: hidden;
         }
 
         /* Welcome Overlay */
@@ -39,190 +32,192 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.65); z-index: 9999;
             display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(6px); cursor: pointer;
-            transition: opacity 0.4s ease;
+            backdrop-filter: blur(6px); cursor: pointer; transition: opacity 0.4s ease;
         }
         .welcome-box {
-            background: #ffffff; padding: 40px; border-radius: 20px;
-            max-width: 550px; text-align: center;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-            animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            background: #ffffff; padding: 40px; border-radius: 20px; max-width: 550px; text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3); animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @keyframes slideDown {
             from { transform: translateY(-30px) scale(0.95); opacity: 0; }
             to { transform: translateY(0) scale(1); opacity: 1; }
         }
 
-        #left-panel {
-            width: 340px;
-            background: var(--panel-bg);
-            border-left: 1px solid var(--border-color);
-            padding: 20px;
+        /* 1 & 4. TOP BANNER */
+        #top-banner {
+            width: 100%; height: 75px; flex-shrink: 0;
+            background: #0078d7;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 25px; color: #ffffff; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            transition: background 0.6s ease;
+        }
+        .banner-right { display: flex; align-items: center; gap: 20px; }
+        .banner-left { display: flex; align-items: center; }
+
+        /* 8. Action Buttons Ordered Right to Left */
+        .action-buttons { display: flex; gap: 15px; margin-right: 20px; }
+        .banner-btn {
+            height: 44px; width: 180px; color: #ffffff; border: none; border-radius: 8px;
+            cursor: pointer; transition: all 0.3s ease; font-family: inherit; font-size: 0.85rem; font-weight: 800;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); background-size: cover; background-position: center;
+            position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); text-decoration: none;
+        }
+        .banner-btn::before { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); transition: background 0.3s; }
+        .banner-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        .banner-btn:hover::before { background: rgba(0, 0, 0, 0.25); }
+        .banner-btn span { position: relative; z-index: 10; }
+
+        #btn-explorer { background-image: url('assets/images/magnifier.webp'); }
+        #btn-similar { background-image: url('assets/images/گونه شناسی.webp'); }
+        #btn-problem { background-image: url('assets/images/پروفایل استان.webp'); }
+
+        /* 11. Refresh Button (Left corner) */
+        #btn-back-default {
+            background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255,255,255,0.4);
+            color: #ffffff; padding: 10px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;
+        }
+        #btn-back-default:hover { background: rgba(255, 255, 255, 0.3); transform: rotate(90deg); }
+
+        #main-content { display: flex; flex-grow: 1; overflow: hidden; }
+
+        /* 2. Right panel visually on the right side - HIDDEN BY DEFAULT */
+        #right-panel {
+            display: none; /* Initially hidden */
+            width: 480px; background: var(--panel-bg); border-left: 1px solid var(--border-color);
+            padding: 25px; box-shadow: -4px 0 15px rgba(0,0,0,0.05); z-index: 1000;
+            flex-direction: column; align-items: center; overflow-y: auto; overflow-x: hidden;
+        }
+
+        #right-panel.show-panel {
             display: flex;
-            flex-direction: column;
-            box-shadow: -4px 0 15px rgba(0,0,0,0.05); 
-            z-index: 1000;
-            overflow-x: hidden;
+            animation: fadeSlideIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
         }
 
-        #search-index {
-            padding: 12px; margin-bottom: 15px; background: #ffffff;
-            border: 1px solid var(--border-color); border-radius: 8px;
-            width: 100%; outline: none; text-align: right;
-            font-family: 'Vazirmatn', Tahoma, sans-serif;
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
         }
-        #search-index:focus { border-color: #0078d7; box-shadow: 0 0 5px rgba(0, 120, 215, 0.2); }
 
-        /* Reorganized Topic List into 2-Column Grid with fixed row heights to strictly prevent overlapping */
-        .index-list { 
-            list-style: none; 
-            padding: 10px; 
-            margin: 0; 
-            overflow-y: auto; 
-            flex-grow: 1; 
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-auto-rows: 190px; /* Explicit height to prevent layout collapse */
-            gap: 16px;
-            align-content: start;
+        #center-column { display: flex; flex-direction: column; flex-grow: 1; position: relative; }
+        
+        #map { flex-grow: 1; background: #e8f4fc; }
+        .leaflet-tile-pane { filter: none; }
+
+        /* 10. Left Side Pop-up Chart (Timeline value 0-100) */
+        #left-popup-panel {
+            position: absolute; left: 20px; top: 20px; bottom: 200px;
+            width: 170px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+            border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: none; flex-direction: column; padding: 15px 10px; z-index: 1000;
+            border: 1px solid var(--border-color);
         }
-        .index-list::-webkit-scrollbar { width: 6px; }
+        #left-popup-panel h3 { font-size: 0.95rem; text-align: center; margin: 0 0 15px 0; color: #333; }
+        
+        #left-chart-container {
+            position: relative; flex-grow: 1; margin: 10px 30px 10px 10px; border-right: 2px solid #ccc;
+        }
+        .y-tick { position: absolute; right: -8px; width: 6px; height: 2px; background: #888; }
+        .y-tick span { position: absolute; right: -30px; top: -10px; font-size: 0.8rem; font-weight: bold; color: #555; }
+        
+        #left-chart-markers { position: absolute; inset: 0; }
+        
+        /* Updated Left Panel Markers for Smoothness & Tooltip */
+        .topic-marker {
+            position: absolute; right: -6px; transform: translateY(50%);
+            display: flex; align-items: center; gap: 8px; flex-direction: row-reverse;
+            transition: bottom 1.5s cubic-bezier(0.25, 1, 0.5, 1); /* Slower and smooth movement */
+        }
+        .topic-marker-dot {
+            width: 16px; height: 16px; /* Increased size */
+            border-radius: 50%; background: #0078d7; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.4); flex-shrink: 0;
+        }
+        .topic-marker-content {
+            display: flex; align-items: center; gap: 6px; background: #fff; padding: 3px 6px; 
+            border-radius: 20px; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative; /* Added for tooltip */
+            cursor: pointer;
+        }
+        .topic-marker-content img { 
+            width: 30px; height: 30px; /* Increased size */
+            border-radius: 50%; object-fit: cover; 
+        }
+        .topic-marker-content span { font-size: 0.85rem; font-weight: bold; color: #333; padding-left: 4px; }
+        
+        /* Custom Tooltip on Hover */
+        .topic-marker-content::after {
+            content: attr(data-topic-name);
+            position: absolute; left: 110%; top: 50%; transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.85); color: #fff;
+            padding: 5px 10px; border-radius: 6px;
+            font-size: 0.85rem; font-weight: normal; white-space: nowrap;
+            opacity: 0; visibility: hidden; transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); pointer-events: none;
+        }
+        .topic-marker-content:hover::after {
+            opacity: 1; visibility: visible; left: 115%;
+        }
+
+        /* 7 & 9. Map Legend */
+        #map-legend {
+            position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+            padding: 8px 15px 22px 15px;
+            border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            z-index: 1000; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(0,0,0,0.05);
+        }
+        .legend-title { font-size: 0.9rem; font-weight: 800; margin-bottom: 8px; color: #444; }
+        .legend-scale-wrapper {
+            direction: ltr; width: 60vw; max-width: 600px;
+        }
+        .legend-scale-bar { display: flex; flex-direction: row; height: 18px; width: 100%; border-radius: 8px; overflow: visible; border: 1px solid #bbb; position: relative; }
+        .legend-segment { flex-grow: 1; height: 100%; cursor: pointer; transition: transform 0.2s, filter 0.2s; }
+        .legend-segment:hover { transform: scaleY(1.3); filter: brightness(1.2); }
+        .legend-labels { display: flex; flex-direction: row; justify-content: space-between; width: 100%; font-size: 0.8rem; font-weight: 700; color: #555; margin-top: 6px; padding: 0 2px; }
+
+        /* 6. Score Pointer Downside */
+        #score-pointer {
+            display: none; position: absolute; bottom: -5px; width: 3px; height: 28px; background: #222;
+            z-index: 10; transition: left 0.4s ease-out; border-radius: 2px; box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        #pointer-label {
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px;
+            background: #222; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;
+        }
+
+        /* 5. Increased Down Banner Height */
+        #bottom-panel {
+            height: 180px; background: var(--panel-bg); border-top: 1px solid var(--border-color);
+            display: flex; flex-direction: row; align-items: center; padding: 10px 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 1000;
+        }
+        
+        .index-list {
+            list-style: none; padding: 0; margin: 0; display: flex; flex-direction: row; 
+            overflow-x: auto; flex-grow: 1; align-items: center; height: 100%; justify-content: space-around;
+        }
+        .index-list::-webkit-scrollbar { height: 8px; }
         .index-list::-webkit-scrollbar-track { background: transparent; }
         .index-list::-webkit-scrollbar-thumb { background: #bbb; border-radius: 10px; }
 
         .index-item {
-            height: 100%;
-            width: 100%;
-            border-radius: 14px; 
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-            font-weight: 700; 
-            text-align: center; 
-            font-size: 0.8rem;
-            color: #ffffff; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            border: 3px solid transparent; 
-            position: relative; 
-            overflow: hidden; 
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 150px; height: 120px; flex-shrink: 0; border-radius: 14px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-weight: 700; text-align: center;
+            font-size: 0.85rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            border: 3px solid transparent; position: relative; overflow: hidden;
+            background-size: cover; background-position: center; display: flex; align-items: flex-end;
+            justify-content: center; padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-        .index-item::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.1) 100%);
-            z-index: 1;
-            transition: opacity 0.3s;
-        }
-        .index-item span {
-            position: relative;
-            z-index: 2;
-            line-height: 1.3;
-        }
+        .index-item::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.1) 100%); z-index: 1; transition: opacity 0.3s; }
+        .index-item span { position: relative; z-index: 2; line-height: 1.3; }
         .index-item:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 18px rgba(0,0,0,0.2); }
-        .index-item.active { border-color: #0078d7; transform: scale(1.03); box-shadow: 0 0 15px rgba(0,120,215,0.5); }
-
-        #explorer-btn-container { margin: 20px auto 10px; display: flex; justify-content: center; width: 100%; flex-shrink: 0; }
-        .explorer-btn {
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-            width: 130px; height: 130px; background: #ffffff;
-            color: #0078d7; border: 3px solid #0078d7; border-radius: 50%;
-            text-decoration: none; font-weight: 800; font-size: 0.85rem;
-            transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(0, 120, 215, 0.15);
-        }
-        .explorer-btn img {
-            width: 48px; height: 48px;
-            transition: transform 0.3s ease, filter 0.3s ease;
-        }
-        .explorer-btn:hover { background: #0078d7; color: #ffffff; box-shadow: 0 10px 25px rgba(0, 120, 215, 0.4); transform: translateY(-4px); }
-        .explorer-btn:hover img { transform: scale(1.1); filter: brightness(0) invert(1); }
-
-        #center-panel { flex-grow: 1; position: relative; }
-        #map { width: 100%; height: 100%; background: #e8f4fc; }
-        .leaflet-tile-pane { filter: none; }
-
-        #map-legend {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
-            padding: 15px 25px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            z-index: 1000; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(0,0,0,0.05);
-        }
-        .legend-title { font-size: 0.9rem; font-weight: 800; margin-bottom: 10px; color: #444; }
-        .legend-scale-bar { display: flex; height: 24px; width: 70vw; max-width: 800px; border-radius: 12px; overflow: hidden; border: 1px solid #bbb; }
-        .legend-segment { flex-grow: 1; height: 100%; cursor: pointer; transition: transform 0.2s, filter 0.2s; }
-        .legend-segment:hover { transform: scaleY(1.3); filter: brightness(1.2); }
-        .legend-labels { display: flex; justify-content: space-between; width: 70vw; max-width: 800px; font-size: 0.8rem; font-weight: 700; color: #555; margin-top: 8px; padding: 0 5px; }
-
-        .glass-popup .leaflet-popup-content-wrapper {
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            border-radius: 12px; padding: 5px;
-        }
-        .glass-popup .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-
-        #right-panel {
-            width: 500px; background: var(--panel-bg); border-right: 1px solid var(--border-color);
-            padding: 25px; box-shadow: 4px 0 15px rgba(0,0,0,0.05); z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; overflow-y: auto;
-            overflow-x: hidden;
-        }
+        .index-item.active { border-color: #ffffff; outline: 3px solid #0078d7; transform: scale(1.03); box-shadow: 0 0 15px rgba(0,120,215,0.5); }
 
         .panel-title { font-size: 1.3rem; margin-top: 0; margin-bottom: 20px; text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; width: 100%; font-weight: 700; color: var(--text-color); }
         #province-details { text-align: center; width: 100%; }
         .instruction { font-size: 0.95rem; color: #666; text-align: center; margin-top: 50px; line-height: 1.5; }
         .index-description-text { font-size: 0.85rem; line-height: 1.8; color: #444; text-align: justify; margin: 10px 0; padding: 12px; background: #f8fbff; border-radius: 10px; border: 1px solid #e0efff; }
-
-        .action-btn {
-            margin-top: 12px; 
-            height: 70px;
-            color: #ffffff; 
-            border: none; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
-            font-family: inherit; 
-            font-size: 1.1rem; 
-            font-weight: 800; 
-            width: 100%; 
-            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-        .action-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            transition: background 0.3s;
-        }
-        .action-btn:hover::before {
-            background: rgba(0, 0, 0, 0.25);
-        }
-        .action-btn span {
-            position: relative;
-            z-index: 10;
-        }
-        #btn-similar { 
-            background-image: url('assets/images/گونه شناسی.webp'); 
-            display: none; 
-        }
-        #btn-problem { 
-            background-image: url('assets/images/پروفایل استان.webp'); 
-            display: none; 
-        }
-        .action-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
         #table-container { width: 100%; display: none; flex-direction: column; height: 100%; }
         #heatmap-wrapper { flex-grow: 1; overflow-y: auto; padding-left: 5px; padding-right: 0; width: 100%; overflow-x: auto; }
@@ -241,7 +236,7 @@
         .prov-row .p-meta { font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px; }
         .sparkline-container { width: 50%; height: 40px; }
 
-        .leaflet-tooltip.custom-tooltip { background-color: rgba(255, 255, 255, 0.95); border: 1px solid #ccc; color: #333; border-radius: 6px; font-family: 'Vazirmatn', sans-serif; font-size: 14px; font-weight: 600;}
+        .leaflet-tooltip.custom-tooltip { background-color: rgba(255, 255, 255, 0.95); border: 1px solid #ccc; color: #333; border-radius: 6px; font-family: 'Vazirmatn', sans-serif; font-size: 14px; text-align: center; line-height: 1.6;}
     </style>
 </head>
 <body>
@@ -256,55 +251,91 @@
         </div>
     </div>
 
-    <div id="left-panel">
-        <h2 class="panel-title">شاخص‌ها</h2>
-        <input type="text" id="search-index" placeholder="جستجوی شاخص...">
-        <ul class="index-list" id="index-list"></ul>
-        
-        <div id="explorer-btn-container">
-            <a href="explorer.html" id="explorer-link" class="explorer-btn">
-                <img src="assets/images/magnifier.webp" alt="کاوشگر">
-                <span>کاوشگر داده</span>
-            </a>
-        </div>
-    </div>
-
-    <div id="center-panel">
-        <div id="map"></div>
-        <div id="map-legend">
-            <span class="legend-title" id="legend-title-text">طیف امتیاز شاخص</span>
-            <div class="legend-scale-bar" id="legend-bar"></div>
-            <div class="legend-labels">
-                <span>کمترین (۰)</span>
-                <span>متوسط</span>
-                <span>بیشترین (۱۰۰)</span>
+    <!-- Header Banner -->
+    <div id="top-banner">
+        <div class="banner-right">
+            <h1 style="font-size: 1.3rem; margin: 0; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">سامانه تصمیم‌یار فرهنگی</h1>
+            
+            <div class="action-buttons">
+                <a href="explorer.html" id="btn-explorer" class="banner-btn"><span>کاوشگر داده</span></a>
+                <button id="btn-similar" class="banner-btn"><span>گونه‌شناسی استان‌های مشابه</span></button>
+                <button id="btn-problem" class="banner-btn"><span>پروفایل استان</span></button>
             </div>
         </div>
+        <div class="banner-left">
+            <button id="btn-back-default" title="بازگشت به پیش‌فرض">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+            </button>
+        </div>
     </div>
 
-    <div id="right-panel">
-        <h2 class="panel-title">تحلیل منطقه‌ای</h2>
-        
-        <div id="province-details">
-            <p class="instruction">در حال بارگذاری اطلاعات...</p>
-        </div>
-        
-        <div id="chart-wrapper" style="width: 100%; height: 260px; margin: 15px 0; display: none;">
-            <canvas id="rankingBarChart"></canvas>
-        </div>
-        
-        <button id="btn-similar" class="action-btn"><span>گونه‌شناسی استان‌های مشابه</span></button>
-        <button id="btn-problem" class="action-btn"><span>پروفایل استان</span></button>
+    <div id="main-content">
+        <!-- Right panel -->
+        <div id="right-panel">
+            <h2 class="panel-title">تحلیل منطقه‌ای</h2>
+            
+            <div id="province-details">
+                <p class="instruction">در حال بارگذاری اطلاعات...</p>
+            </div>
+            
+            <div id="chart-wrapper" style="width: 100%; height: 260px; margin: 15px 0; display: none;">
+                <canvas id="rankingBarChart"></canvas>
+            </div>
+            
+            <div id="trend-wrapper" style="width: 100%; height: 260px; margin: 15px 0; display: none;">
+                <canvas id="trendChartPanel"></canvas>
+            </div>
 
-        <div id="table-container">
-            <button id="btn-back" style="margin-bottom: 15px; background: transparent; color: #666; border: 1px solid #ccc; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; width: 100%; transition: 0.2s; font-family: 'Vazirmatn';">← بازگشت به نمای اصلی</button>
-            <div id="heatmap-wrapper"></div>
+            <div id="table-container">
+                <button id="btn-back" style="margin-bottom: 15px; background: transparent; color: #666; border: 1px solid #ccc; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; width: 100%; transition: 0.2s; font-family: inherit;">← بازگشت به نمای اصلی</button>
+                <div id="heatmap-wrapper"></div>
+            </div>
+        </div>
+
+        <div id="center-column">
+            <div id="map"></div>
+            
+            <!-- Left Side Pop-up Chart for Timeline 0-100 -->
+            <div id="left-popup-panel">
+                <h3 id="left-popup-title">وضعیت شاخص‌ها</h3>
+                <div id="left-chart-container">
+                    <div class="y-tick" style="bottom: 0%;"><span>۰</span></div>
+                    <div class="y-tick" style="bottom: 25%;"><span>۲۵</span></div>
+                    <div class="y-tick" style="bottom: 50%;"><span>۵۰</span></div>
+                    <div class="y-tick" style="bottom: 75%;"><span>۷۵</span></div>
+                    <div class="y-tick" style="bottom: 100%;"><span>۱۰۰</span></div>
+                    <div id="left-chart-markers"></div>
+                </div>
+            </div>
+
+            <!-- Map Legend scale bar LTR -->
+            <div id="map-legend">
+                <span class="legend-title" id="legend-title-text">طیف امتیاز شاخص</span>
+                <div class="legend-scale-wrapper">
+                    <div class="legend-scale-bar" id="legend-bar">
+                        <div id="score-pointer">
+                            <div id="pointer-label">۰</div>
+                        </div>
+                    </div>
+                    <div class="legend-labels">
+                        <span>۰</span>
+                        <span>متوسط</span>
+                        <span>۱۰۰</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Panel -->
+            <div id="bottom-panel">
+                <ul class="index-list" id="index-list"></ul>
+            </div>
         </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -325,6 +356,15 @@
             return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : {r:0, g:120, b:215};
         }
 
+        function shadeRGB(colorObj, percent) {
+            let r = parseInt(colorObj.r * (100 + percent) / 100);
+            let g = parseInt(colorObj.g * (100 + percent) / 100);
+            let b = parseInt(colorObj.b * (100 + percent) / 100);
+            r = r < 255 ? r : 255; g = g < 255 ? g : 255; b = b < 255 ? b : 255;
+            r = r > 0 ? r : 0; g = g > 0 ? g : 0; b = b > 0 ? b : 0;
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
         function interpolateColor(c1, c2, factor) {
             let r = Math.round(c1.r + factor * (c2.r - c1.r));
             let g = Math.round(c1.g + factor * (c2.g - c1.g));
@@ -336,18 +376,14 @@
         let currentLowerRgb = {r:230, g:240, b:255}; 
         let currentUpperRgb = {r:0, g:120, b:215};
 
-        function getHeatmapColor(score) {
-            let factor = Number(score) / 100;
-            if (factor > 1) factor = 1;
-            if (factor < 0) factor = 0;
-            return interpolateColor(currentLowerRgb, currentUpperRgb, factor);
-        }
-
         let hoveredStageIndex = null;
 
         function initLegend() {
             const bar = document.getElementById('legend-bar');
+            const pointer = document.getElementById('score-pointer');
             bar.innerHTML = '';
+            bar.appendChild(pointer);
+
             for(let i=0; i<heatStages; i++) {
                 let scoreVal = (i / (heatStages - 1)) * 100;
                 let seg = document.createElement('div');
@@ -361,19 +397,17 @@
             document.getElementById('legend-title-text').innerText = `طیف امتیاز (${currentIndex})`;
         }
 
-        let topicsData = []; 
-        let mapScoresData = []; 
-        let trendScoreData = []; 
-        let clustersData = []; 
+        let topicsData = []; let mapScoresData = []; let trendScoreData = []; let clustersData = []; 
 
         let currentIndex = "";
         let map, geojsonLayer;
         let rankingBarChart = null;
-        let mapPopupChart = null;
+        let trendChartInstance = null;
         let sparklineCharts = [];
         let loadedGeoJSON = null;
         let selectedProvince = null;
         let similarProvinces = []; 
+        let leftPanelInitialized = false;
 
         function parseCSV(text) {
             let lines = text.trim().split(/\r\n|\n/);
@@ -392,9 +426,7 @@
         }
 
         function parseCSVLine(line) {
-            let result = [];
-            let insideQuote = false;
-            let entry = "";
+            let result = []; let insideQuote = false; let entry = "";
             for(let i=0; i<line.length; i++) {
                 let char = line[i];
                 if(char === '"') insideQuote = !insideQuote;
@@ -417,7 +449,7 @@
 
                 if(topicsData.length > 0) {
                     currentIndex = topicsData[0].topic_name;
-                    updateTopicColors(topicsData[0]);
+                    updateTopicColors(topicsData[0]); 
                 }
                 initUI();
                 initLegend();
@@ -440,6 +472,16 @@
                 currentLowerRgb = {r:230, g:240, b:255}; 
                 currentUpperRgb = {r:0, g:120, b:215};
             }
+            
+            let darkerRgb = shadeRGB(currentUpperRgb, -40);
+            let upperStr = `rgb(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b})`;
+            document.getElementById('top-banner').style.background = `linear-gradient(90deg, ${darkerRgb}, ${upperStr})`;
+        }
+
+        function getHeatmapColor(score) {
+            let factor = Number(score) / 100;
+            if (factor > 1) factor = 1; if (factor < 0) factor = 0;
+            return interpolateColor(currentLowerRgb, currentUpperRgb, factor);
         }
 
         function initUI() {
@@ -456,50 +498,66 @@
                 li.innerHTML = `<span>${t.topic_name}</span>`;
 
                 li.onclick = () => {
-                    if (selectedProvince) {
-                        selectedProvince = null;
-                        map.closePopup();
-                        map.flyTo([32.4279, 53.6880], 5.5, { duration: 1.5 });
-                    }
-
                     document.querySelectorAll('.index-item').forEach(el => el.classList.remove('active'));
                     li.classList.add('active');
                     currentIndex = t.topic_name;
-                    updateTopicColors(t);
                     
+                    updateTopicColors(t);
                     similarProvinces = [];
                     updateMapStyles();
                     initLegend();
-                    updateDefaultPanel();
+                    updatePointer();
+                    
+                    // Show right panel smoothly when topic is clicked
+                    document.getElementById('right-panel').classList.add('show-panel');
+                    
+                    // Force Leaflet to resize the map cleanly after the CSS layout has been applied
+                    setTimeout(() => {
+                        map.invalidateSize({ animate: true });
+                        if (!selectedProvince) {
+                            // Re-center back on the country view keeping the new layout dimensions
+                            map.flyTo([32.4279, 53.6880], 5.2, { duration: 1.5 });
+                        }
+                    }, 100);
+
+                    if (selectedProvince) {
+                        updateRightPanel(selectedProvince);
+                    } else {
+                        updateDefaultPanel();
+                    }
                     document.getElementById('table-container').style.display = 'none';
                 };
                 list.appendChild(li);
             });
 
-            document.getElementById('search-index').addEventListener('input', function(e) {
-                const term = e.target.value.toLowerCase();
-                document.querySelectorAll('.index-item').forEach(li => {
-                    li.style.display = li.innerText.toLowerCase().includes(term) ? 'flex' : 'none';
-                });
-            });
-
             document.getElementById('btn-back').addEventListener('click', resetToChartPanel);
+            document.getElementById('btn-back-default').addEventListener('click', clearSelection);
 
-            document.getElementById('btn-problem').addEventListener('click', function() {
-                if(selectedProvince && currentIndex) {
+            document.getElementById('btn-problem').addEventListener('click', function(e) {
+                if(!selectedProvince) {
+                    e.preventDefault(); alert("لطفاً ابتدا یک استان را از روی نقشه انتخاب کنید."); return;
+                }
+                if(currentIndex) {
                     window.location.href = `problem.html?province=${encodeURIComponent(selectedProvince)}&topic=${encodeURIComponent(currentIndex)}`;
                 }
             });
 
-            document.getElementById('btn-similar').addEventListener('click', function() {
-                if (!selectedProvince || !loadedGeoJSON) return;
-                map.flyTo([32.4279, 53.6880], 5.5, { duration: 1.5 });
-                map.closePopup();
+            document.getElementById('btn-similar').addEventListener('click', function(e) {
+                if (!selectedProvince || !loadedGeoJSON) {
+                    e.preventDefault(); alert("لطفاً ابتدا یک استان را از روی نقشه انتخاب کنید."); return;
+                }
+
+                // Update size and fly in response
+                setTimeout(() => {
+                    map.invalidateSize(true);
+                    map.flyTo([32.4279, 53.6880], 5.2, { duration: 1.5 });
+                }, 100);
+
+                document.getElementById('left-popup-panel').style.display = 'none';
 
                 document.getElementById('province-details').style.display = 'none';
                 document.getElementById('chart-wrapper').style.display = 'none';
-                this.style.display = 'none';
-                document.getElementById('btn-problem').style.display = 'none';
+                document.getElementById('trend-wrapper').style.display = 'none';
                 
                 let topicClusters = clustersData.filter(c => c.topic_name === currentIndex);
                 let provMap = {};
@@ -613,9 +671,22 @@
             });
         }
 
+        function updatePointer() {
+            const pointer = document.getElementById('score-pointer');
+            const pointerLabel = document.getElementById('pointer-label');
+            if (selectedProvince && currentIndex) {
+                let score = getProvinceScore(selectedProvince, currentIndex);
+                pointer.style.display = 'block';
+                pointer.style.left = score + '%'; 
+                pointerLabel.innerText = Math.round(score);
+            } else {
+                pointer.style.display = 'none';
+            }
+        }
+
         function getProvinceScore(provName, topicName) {
             let row = mapScoresData.find(m => m.province_name === provName && m.topic_name === topicName);
-            return row ? Number(row.index_score) : 50;
+            return row ? Number(row.index_score) : 0; 
         }
 
         function getProvincePop(provName) {
@@ -623,13 +694,59 @@
             return row && row.province_pop ? Number(row.province_pop) : 2000000;
         }
 
+        function renderLeftFloatingPanel(provinceName) {
+            const panel = document.getElementById('left-popup-panel');
+            if(!provinceName) { panel.style.display = 'none'; return; }
+            
+            const container = document.getElementById('left-chart-markers');
+            document.getElementById('left-popup-title').innerText = `شاخص‌های ${provinceName}`;
+            
+            if (!leftPanelInitialized) {
+                container.innerHTML = '';
+                topicsData.forEach(t => {
+                    let markerId = 'left-marker-' + t.topic_name.replace(/\s+/g, '-');
+                    let imgPath = `assets/images/تاپیک ${t.topic_name}.webp`;
+                    
+                    let marker = document.createElement('div');
+                    marker.className = 'topic-marker';
+                    marker.id = markerId;
+                    marker.style.bottom = `0%`; 
+                    marker.style.zIndex = 0;
+                    
+                    marker.innerHTML = `
+                        <div class="topic-marker-dot" style="background: ${t.upper_color || '#0078d7'};"></div>
+                        <div class="topic-marker-content" data-topic-name="${t.topic_name}">
+                            <img src="${imgPath}" alt="${t.topic_name}" onerror="this.style.display='none'">
+                            <span class="marker-score-value">0</span>
+                        </div>
+                    `;
+                    container.appendChild(marker);
+                });
+                leftPanelInitialized = true;
+            }
+
+            setTimeout(() => {
+                topicsData.forEach(t => {
+                    let score = getProvinceScore(provinceName, t.topic_name);
+                    let markerId = 'left-marker-' + t.topic_name.replace(/\s+/g, '-');
+                    let marker = document.getElementById(markerId);
+                    if (marker) {
+                        marker.style.bottom = `${score}%`;
+                        marker.style.zIndex = Math.round(score);
+                        marker.querySelector('.marker-score-value').innerText = Math.round(score);
+                    }
+                });
+            }, 50);
+            
+            panel.style.display = 'flex';
+        }
+
         function resetToChartPanel() {
             document.getElementById('table-container').style.display = 'none';
             document.getElementById('province-details').style.display = 'block';
             if (selectedProvince) {
                 document.getElementById('chart-wrapper').style.display = 'block';
-                document.getElementById('btn-similar').style.display = 'flex';
-                document.getElementById('btn-problem').style.display = 'flex';
+                document.getElementById('trend-wrapper').style.display = 'block';
             } else {
                 updateDefaultPanel();
             }
@@ -643,12 +760,20 @@
             similarProvinces = [];
             updateMapStyles();
             map.closePopup();
+            document.getElementById('left-popup-panel').style.display = 'none';
             document.getElementById('table-container').style.display = 'none';
+
+            // Resize the map back to default
+            setTimeout(() => {
+                map.invalidateSize(true);
+                map.flyTo([32.4279, 53.6880], 5.2, { duration: 1.5 }); 
+            }, 100);
+
             resetToChartPanel();
         }
 
         function initMap() {
-            map = L.map('map', { zoomSnap: 0.5, maxZoom: 8 }).setView([32.4279, 53.6880], 5.5);
+            map = L.map('map', { zoomSnap: 0.5, maxZoom: 8 }).setView([32.4279, 53.6880], 5.2);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 20
             }).addTo(map);
@@ -660,6 +785,9 @@
             geojsonLayer.eachLayer(function (layer) {
                 const provName = layer.feature.properties.ADM1_FA || "استان ناشناخته";
                 let score = getProvinceScore(provName, currentIndex);
+                
+                layer.setTooltipContent(`<strong>${provName}</strong><br/><span style="color:#0078d7; font-weight:bold;">امتیاز: ${score}</span>`);
+
                 let fColor = getHeatmapColor(score);
                 let fOpac = 0.85, bColor = "#ffffff", bWeight = 1.5;
 
@@ -678,71 +806,35 @@
             });
         }
 
-        function showMapPopup(provName) {
-            if(mapPopupChart) { mapPopupChart.destroy(); mapPopupChart = null; }
-            map.closePopup();
-            
-            let layerMatch = null;
-            geojsonLayer.eachLayer(l => { if(l.feature.properties.ADM1_FA === provName) layerMatch = l; });
-            if(!layerMatch) return;
-
-            const bounds = layerMatch.getBounds();
-            map.flyToBounds(bounds, { maxZoom: 6.2, paddingTopLeft: [50, 200], paddingBottomRight: [50, 50], duration: 1.5 });
-            const popupPos = L.latLng(bounds.getNorth(), bounds.getCenter().lng);
-
-            let pTrends = trendScoreData.filter(tr => tr.province_name === provName && tr.topic_name === currentIndex);
-            pTrends.sort((a, b) => Number(a.year) - Number(b.year));
-
-            const canvasId = 'popupCanvas_' + Date.now();
-            L.popup({ className: 'glass-popup', closeButton: false, autoClose: false, closeOnClick: false, offset: [0, -10] })
-            .setLatLng(popupPos)
-            .setContent(`
-                <div style="width: 270px; text-align: center;">
-                    <div style="font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 8px;">روند زمانی - ${provName}</div>
-                    <div style="height: 140px; width: 100%;"><canvas id="${canvasId}"></canvas></div>
-                </div>
-            `).openOn(map);
-
-            let rgbUpperStr = `rgba(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b}`;
-
-            setTimeout(() => {
-                const ctx = document.getElementById(canvasId);
-                if(!ctx) return;
-                mapPopupChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: pTrends.map(tr => tr.year),
-                        datasets: [{
-                            label: 'امتیاز شاخص', data: pTrends.map(tr => Number(tr.index_score)),
-                            borderColor: rgbUpperStr + ', 1)', backgroundColor: rgbUpperStr + ', 0.15)', borderWidth: 2, fill: true,
-                            pointBackgroundColor: '#e11d48', pointBorderColor: '#fff', pointRadius: 4, pointHoverRadius: 6, tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                        scales: { 
-                            x: { ticks: { font: { size: 9 }, color: '#555' }, grid: { display: false } }, 
-                            y: { min: 0, max: 100, ticks: { font: { size: 9 }, color: '#555', stepSize: 25 }, grid: { color: 'rgba(0,0,0,0.08)' } }
-                        }, animation: { duration: 800 }
-                    }
-                });
-            }, 150); 
-        }
-
         function renderMapData(geojsonData) {
             loadedGeoJSON = geojsonData;
             geojsonLayer = L.geoJSON(geojsonData, {
                 onEachFeature: function (feature, layer) {
                     const provName = feature.properties.ADM1_FA || "استان ناشناخته";
-                    layer.bindTooltip(`<strong>${provName}</strong>`, { sticky: true, className: 'custom-tooltip' });
+                    
+                    layer.bindTooltip("", { sticky: true, className: 'custom-tooltip' });
+                    
                     layer.on('mouseover', (e) => { e.target.setStyle({ weight: 2.5 }).bringToFront(); });
                     layer.on('mouseout', () => { updateMapStyles(); });
                     layer.on('click', (e) => {
                         L.DomEvent.stopPropagation(e); 
                         selectedProvince = provName;
+                        
+                        // Show right panel smoothly when province is clicked
+                        document.getElementById('right-panel').classList.add('show-panel');
+
+                        // Update Leaflet dimensions cleanly then execute the fly animation
+                        setTimeout(() => {
+                            map.invalidateSize(true);
+                            const bounds = layer.getBounds();
+                            // Adjusted padding bounds for the new UI to properly center avoiding left panel
+                            map.flyToBounds(bounds, { maxZoom: 6.2, paddingTopLeft: [200, 50], paddingBottomRight: [50, 50], duration: 1.5 });
+                        }, 100);
+
                         resetToChartPanel(); 
                         updateRightPanel(provName);
-                        showMapPopup(provName);
+                        updatePointer();
+                        renderLeftFloatingPanel(provName); 
                     });
                 }
             }).addTo(map);
@@ -761,12 +853,16 @@
             `;
 
             document.getElementById('chart-wrapper').style.display = 'none';
-            document.getElementById('btn-similar').style.display = 'none';
-            document.getElementById('btn-problem').style.display = 'none';
+            document.getElementById('trend-wrapper').style.display = 'none';
             if (rankingBarChart) { rankingBarChart.destroy(); rankingBarChart = null; }
+            if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+            updatePointer();
         }
 
         function updateRightPanel(provinceName) {
+            // Guarantee it displays when explicitly called by adding the class
+            document.getElementById('right-panel').classList.add('show-panel');
+
             let tObj = topicsData.find(t => t.topic_name === currentIndex);
             let desc = tObj ? tObj.topic_description : "";
             let score = getProvinceScore(provinceName, currentIndex);
@@ -785,18 +881,16 @@
             `;
 
             document.getElementById('chart-wrapper').style.display = 'block';
-            document.getElementById('btn-similar').style.display = 'flex';
-            document.getElementById('btn-problem').style.display = 'flex';
+            document.getElementById('trend-wrapper').style.display = 'block';
 
             let sortedProvs = mapScoresData.filter(m => m.topic_name === currentIndex).map(m => ({ name: m.province_name, score: Number(m.index_score) }));
             sortedProvs.sort((a, b) => b.score - a.score);
+            let rgbUpperStr = `rgba(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b}`;
 
             if (rankingBarChart) { rankingBarChart.destroy(); }
-            const canvas = document.getElementById('rankingBarChart');
+            const canvasRank = document.getElementById('rankingBarChart');
             
-            let rgbUpperStr = `rgba(${currentUpperRgb.r}, ${currentUpperRgb.g}, ${currentUpperRgb.b}`;
-            
-            rankingBarChart = new Chart(canvas, {
+            rankingBarChart = new Chart(canvasRank, {
                 type: 'bar',
                 data: {
                     labels: sortedProvs.map(p => p.name),
@@ -812,6 +906,60 @@
                     scales: {
                         x: { ticks: { font: { size: 9 }, color: '#333', maxRotation: 90, minRotation: 45 }, grid: { display: false } },
                         y: { min: 0, max: 100, ticks: { font: { size: 9 }, color: '#333' } }
+                    }
+                }
+            });
+
+            let pTrends = trendScoreData.filter(tr => tr.province_name === provinceName && tr.topic_name === currentIndex);
+            pTrends.sort((a, b) => Number(a.year) - Number(b.year));
+
+            if (trendChartInstance) { trendChartInstance.destroy(); }
+            const tCanvas = document.getElementById('trendChartPanel');
+
+            const totalDuration = 1500;
+            const delayBetweenPoints = totalDuration / (pTrends.length > 0 ? pTrends.length : 1);
+            const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
+
+            trendChartInstance = new Chart(tCanvas, {
+                type: 'line',
+                data: {
+                    labels: pTrends.map(tr => tr.year),
+                    datasets: [{
+                        label: 'روند زمانی',
+                        data: pTrends.map(tr => Number(tr.index_score)),
+                        borderColor: '#e11d48',
+                        backgroundColor: 'rgba(225, 29, 72, 0.1)',
+                        borderWidth: 2, fill: true,
+                        pointBackgroundColor: '#e11d48', pointRadius: 4, tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: {
+                        x: {
+                            type: 'number', easing: 'linear', duration: delayBetweenPoints, from: NaN,
+                            delay(ctx) {
+                                if (ctx.type !== 'data' || ctx.xStarted) return 0;
+                                ctx.xStarted = true;
+                                return ctx.index * delayBetweenPoints;
+                            }
+                        },
+                        y: {
+                            type: 'number', easing: 'linear', duration: delayBetweenPoints, from: previousY,
+                            delay(ctx) {
+                                if (ctx.type !== 'data' || ctx.yStarted) return 0;
+                                ctx.yStarted = true;
+                                return ctx.index * delayBetweenPoints;
+                            }
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false }, 
+                        title: { display: true, text: 'روند زمانی', font: { family: 'Vazirmatn' }, color: '#333' } 
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 10 }, color: '#555' }, grid: { display: false } },
+                        y: { min: 0, max: 100, ticks: { font: { size: 10 }, color: '#555', stepSize: 25 }, grid: { color: 'rgba(0,0,0,0.08)' } }
                     }
                 }
             });
